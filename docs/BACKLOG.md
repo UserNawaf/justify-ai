@@ -50,9 +50,17 @@ Status: ✅ done in the MVP · ⬜ to do. Each epic below maps to a Jira Epic, e
 - ⬜ Structured logs + request id, health/readiness probes for Kubernetes
 - ⬜ Deploy to AWS (ECS or EKS) with RDS PostgreSQL; model on a GPU instance or an approved hosted model
 
+## EPIC 8: Firewall request portal
+- ✅ Validated request form, ticket numbers, AI-checked justification with confirmed form fields
+- ✅ Network team queue, request page, approve / reject with note
+- ✅ `reporting.v_firewall_requests`
+- ⬜ Real identities and an approver role from SSO (D28)
+- ⬜ Email the requester when the request needs info or is decided
+- ⬜ Export an approved rule in the firewall team's change format (CSV / their ticketing tool)
+
 ## EPIC 7: Frontend
 - ✅ Isolated React app: submit, answer, copy result, Arabic/English
-- ⬜ History page ("my requests")
+- ✅ Request history and queue (portal), filter by status, search; "my requests" via `employeeId`
 - ✅ Component tests (Vitest + Testing Library)
 
 ## Prompt evaluation results

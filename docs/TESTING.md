@@ -16,6 +16,7 @@ the model.
 | `ApiKeyFilterTest` | Key check, CORS preflight and non-API paths pass |
 | `JustificationControllerTest` | HTTP contract: status codes, validation, language selection, no internal detail leaked on 503 |
 | `LanguageTest` | `Accept-Language` parsing, Arabic with English fallback |
+| `FirewallFormValidatorTest` | IPs and subnets, `0.0.0.0/0` refused, ports and ranges, temporary end date, form → confirmed justification fields |
 | `WebhookNotifierTest` | Payload, HMAC signature (checked against openssl), retries on 5xx, gives up quietly (real local HTTP server) |
 
 The model is replaced by `FakeAiClient`, which reads `"field: value"` lines, so results are exact and repeatable.
@@ -28,6 +29,12 @@ submission → signed webhook received → engineer feedback → the row, its mi
 in the Power BI views; Arabic questions on the access-request template; model outage stores nothing; the
 `powerbi_reader` login reads the views and is refused on the tables. Skipped automatically if Docker is
 not available (check the CI log says `Skipped: 0` for it).
+
+`FirewallPortalIT` (same setup) walks the portal: valid form + vague reason → only the "why" is asked, in
+Arabic → engineer cannot decide yet (409) → answers → `PENDING_REVIEW` with the form values in the
+standardised text → rejection without note refused → approval → second decision 409 → found by ticket, listed
+with filters, visible in `reporting.v_firewall_requests`; invalid forms return every field problem and store
+nothing.
 
 ## 3. Prompt evaluation: real model (`PromptEvalIT`, manual)
 
@@ -60,6 +67,7 @@ The prompt evaluation is not in CI (it needs a model and its results vary).
 
 ## Frontend
 
-`npm test` runs Vitest + Testing Library against a mocked `fetch`: the submit → questions → answer → result flow
-in Arabic (RTL), the friendly 503 message, and switching to English. `npm run build` type-checks and builds.
+`npm test` runs Vitest + Testing Library against a mocked `fetch`: the portal form → AI question → submitted,
+server field errors shown next to the right inputs, the queue → request page → approval, and the checker flow
+in Arabic (RTL), the friendly 503 message and switching to English. `npm run build` type-checks and builds.
 Both run in CI.

@@ -10,6 +10,7 @@ a dedicated `reporting` schema through a read-only login.
 | `reporting.v_submissions` | submission | Volumes, status, quality score, rounds, time to complete, first-pass rate |
 | `reporting.v_missing_fields` | submission × round × missing field | Which information employees forget most, per template and per source system |
 | `reporting.v_daily_summary` | day × template | Ready-made daily trend (totals, avg quality, avg rounds, first-pass %) |
+| `reporting.v_firewall_requests` | firewall request | Portal volumes per department, approval rate, `hours_to_decision`, quality of approved vs rejected |
 | `reporting.v_feedback` | submission with engineer feedback | Does the quality score match the engineer's verdict (`sufficient`)? |
 
 Key columns: `is_complete`, `first_pass_complete` (complete with no questions asked: the headline KPI),
@@ -39,6 +40,7 @@ First Pass Rate %  = DIVIDE ( CALCULATE ( [Total Requests], v_submissions[first_
 Avg Quality        = AVERAGE ( v_submissions[quality_score] )
 Avg Rounds         = AVERAGE ( v_submissions[round_count] )
 Incomplete %       = DIVIDE ( CALCULATE ( [Total Requests], v_submissions[status] = "INCOMPLETE" ), [Total Requests] ) * 100
+Approval Rate %    = DIVIDE ( CALCULATE ( COUNTROWS ( v_firewall_requests ), v_firewall_requests[status] = "APPROVED" ), CALCULATE ( COUNTROWS ( v_firewall_requests ), v_firewall_requests[status] IN { "APPROVED", "REJECTED" } ) ) * 100
 Sufficient %       = DIVIDE ( CALCULATE ( COUNTROWS ( v_feedback ), v_feedback[sufficient] = TRUE () ), COUNTROWS ( v_feedback ) ) * 100
 ```
 
@@ -53,5 +55,5 @@ Sufficient %       = DIVIDE ( CALCULATE ( COUNTROWS ( v_feedback ), v_feedback[s
 ## Adding a report
 
 Never point Power BI at the raw tables. Add a view in a new Flyway migration
-(`backend/src/main/resources/db/migration/V4__....sql`) under the `reporting` schema; the read-only login gets
+(`backend/src/main/resources/db/migration/V5__....sql`) under the `reporting` schema; the read-only login gets
 access automatically (default privileges).

@@ -6,16 +6,16 @@ autonomy: decide, fix and push without asking, unless something is irreversible 
 
 ## Where things are
 
-- Spec and rationale: `README.md`, `DECISIONS.md` (D1-D25), `docs/ARCHITECTURE.md`, `docs/TESTING.md`,
+- Spec and rationale: `README.md`, `DECISIONS.md` (D1-D28), `docs/ARCHITECTURE.md`, `docs/TESTING.md`,
   `docs/POWERBI.md`, `docs/BACKLOG.md` (what is left, prompt-eval results).
 - Backend: `backend/` (Java 21, Spring Boot 3.5, Maven). Packages `core` (no framework imports),
-  `core.pipeline`, `ai`, `template`, `persistence`, `service`, `notify`, `api`, `config`.
+  `core.pipeline`, `ai`, `template`, `persistence`, `service`, `notify`, `firewall` (request portal), `api`, `config`.
 - Frontend: `frontend/` (React 19, Vite, TypeScript, Vitest). Talks to `/api/v1` only.
 
 ## Commands
 
 ```bash
-cd backend && mvn verify                 # 47 unit + 7 integration tests (needs Docker for Testcontainers)
+cd backend && mvn verify                 # 54 unit + 10 integration tests (needs Docker for Testcontainers)
 cd frontend && npm test && npm run build
 RUN_AI_EVAL=true mvn verify -Dit.test=PromptEvalIT   # real model, see docs/TESTING.md
 ```

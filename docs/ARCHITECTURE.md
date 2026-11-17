@@ -27,6 +27,7 @@
 | `core.pipeline` | `EvaluationPipeline`: extract → merge → decide → score → render | `AiClient` interface |
 | `ai` | `OllamaAiClient`, `GroqAiClient` (shared `ChatAiClient`), prompt, strict JSON parsing | Ollama / Groq HTTP API |
 | `notify` | `WebhookNotifier`: signed POST when a submission closes | JDK `HttpClient` |
+| `firewall` | Request portal: form validation, ticket numbers, status, decision (D26-D28) | `service`, `persistence` |
 | `template` | Loads YAML templates | SnakeYAML |
 | `persistence` | JPA entities + repositories | PostgreSQL |
 | `service` | Orchestration: one submission's lifecycle, transactions | all of the above |
@@ -67,6 +68,18 @@ Each round is saved in `submission_round` (what was missing, what was asked), wh
 | GET | `/api/v1/templates`, `/api/v1/templates/{id}` | Available request types and their fields |
 | GET | `/api/v1/stats` | Quick numbers (full analytics: Power BI) |
 
+Firewall request portal:
+
+| Method | Path | Purpose |
+|---|---|---|
+| POST | `/api/v1/firewall-requests` | Form + justification text. 400 with `errors[]` per field; 201 with `ticketNo` and open questions |
+| GET | `/api/v1/firewall-requests?status=&employeeId=&q=&page=&size=` | Queue / history, newest first |
+| GET | `/api/v1/firewall-requests/{id}`, `/ticket/{ticketNo}` | One request with its justification |
+| POST | `/api/v1/firewall-requests/{id}/answers` | Requester answers the questions |
+| POST | `/api/v1/firewall-requests/{id}/decision` | `{"decision":"APPROVED"|"REJECTED","engineer":"...","note":"..."}` |
+
+`POST /justifications` also accepts `fields` (confirmed values the caller already has, D26).
+
 Questions and template labels follow `?lang=ar|en` or `Accept-Language`; the standardised text is always English (D22).
 
 Interactive docs: `http://localhost:8080/swagger-ui.html`. Errors are `application/problem+json`:
@@ -92,6 +105,10 @@ version (optimistic lock)
 ```
 
 submission_feedback (V3): submission_id PK/FK, sufficient, comment, created_at, updated_at
+
+firewall_request (V4): id, ticket_no (FW-YYYY-NNNNN), requester, source/destination host + IP, protocol, ports,
+duration, submission_id FK (its justification), status AWAITING_INFO|PENDING_REVIEW|APPROVED|REJECTED,
+decided_by, decision_note, decided_at, version
 
 Reporting views (read by Power BI): see [POWERBI.md](POWERBI.md).
 

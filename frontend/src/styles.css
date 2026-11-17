@@ -94,7 +94,7 @@ td { padding: 12px 14px; border-bottom: 1px solid var(--line); vertical-align: t
 tbody tr { cursor: pointer; }
 tbody tr:hover, tbody tr:focus { background: #f7faf9; outline: none; }
 tbody tr:last-child td { border-bottom: 0; }
-td.mono, dd.mono, .mono { font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace; font-size: 13px; text-align: left; }
+td.mono, .mono { font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace; font-size: 13px; text-align: left; }
 .sub { color: var(--muted); font-size: 12.5px; margin-top: 2px; }
 .pager { padding: 10px 14px; border-top: 1px solid var(--line); }
 .ticket { font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace; font-weight: 700; white-space: nowrap; direction: ltr; unicode-bidi: isolate; }
@@ -124,3 +124,5 @@ main > h1 + .muted { margin-bottom: 20px; }
   .details dd { margin-bottom: 8px; }
   .search { min-width: 0; max-width: none; width: 100%; }
 }
+main .card + .card, main .card + section, main section + .card { margin-top: 16px; }
+.details dd.mono { text-align: start; }

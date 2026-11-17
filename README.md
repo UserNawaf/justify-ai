@@ -26,6 +26,28 @@ two go back and forth on Teams or email asking "what do you mean?". Justify AI s
 
 </details>
 
+## Firewall request portal
+
+A complete request flow like a company IT portal: the requester fills in the technical fields (device name,
+IPs, ports, duration), which **code** validates, and explains **why** in their own words, which **AI** checks.
+Each request gets a ticket number (`FW-2026-00042`), goes to the network team's queue once the justification
+is good enough, and is approved or rejected with a note. Everything is stored and reported.
+
+| New request | AI asks only for the missing "why" |
+|---|---|
+| ![Form](docs/images/4-portal-form-ar.png) | ![Question](docs/images/5-portal-question-ar.png) |
+
+| Network team queue | Review and decide |
+|---|---|
+| ![Requests](docs/images/6-portal-list-ar.png) | ![Review](docs/images/7-portal-review-ar.png) |
+
+The form values are passed to the justification as confirmed fields, so the model never guesses an IP or a
+port and the employee is never asked for something they already typed ([D26](DECISIONS.md#d26-the-portal-splits-what-code-can-check-from-what-needs-reading)).
+
+## Justification checker
+
+The original screen, still available: paste any free-text justification, for any request type.
+
 It is a standalone service with a REST API, so it can be added to any workplace tool (web form, ServiceNow,
 Jira, Teams) through a thin adapter, and it notifies them through a signed webhook when a justification is ready.
 
@@ -53,6 +75,7 @@ Field accuracy = for each required field, did the model correctly say present / 
 
 ## Features
 
+- Firewall request portal: validated form, ticket numbers, statuses, network team queue, approve / reject
 - Free text in Arabic, English or both; questions and labels localized (`Accept-Language` / `?lang=ar`)
 - Request types as YAML templates, no code: firewall rule and access request bundled, more via `TEMPLATES_DIR`
 - Max 3 questions per round, max 3 rounds, then `INCOMPLETE` instead of blocking the employee
@@ -98,6 +121,13 @@ curl -s localhost:8080/api/v1/justifications -H 'Content-Type: application/json'
 curl -s localhost:8080/api/v1/justifications/<id>/answers -H 'Content-Type: application/json' \
   -d '{"answers":{"duration":"Permanent","impact_if_rejected":"Salaries are paid late"}}'
 # -> status COMPLETE + standardizedText + qualityScore
+
+curl -s localhost:8080/api/v1/firewall-requests -H 'Content-Type: application/json' -H 'Accept-Language: ar' -d '{
+  "requesterName":"Nawaf","employeeId":"E10234","department":"Finance IT",
+  "sourceHostname":"payroll-app-01","sourceIp":"10.10.5.20","destinationHost":"api.bank.example",
+  "protocol":"TCP","ports":"443","durationType":"PERMANENT",
+  "justification":"نظام الرواتب يرسل ملف الرواتب الشهري للبنك"}'
+# -> 201, ticketNo FW-2026-00001, status AWAITING_INFO, and only the "why" is asked (impact if rejected)
 
 curl -s localhost:8080/api/v1/justifications/<id>/feedback -H 'Content-Type: application/json' \
   -d '{"sufficient":true}'
@@ -152,10 +182,12 @@ Environment variables (defaults in `backend/src/main/resources/application.yml`)
 ## Status
 
 **Verified on every push (GitHub Actions)**
-- Backend `mvn verify`: 47 unit tests and 7 integration tests on real PostgreSQL 16 (Testcontainers): full
+- Backend `mvn verify`: 54 unit tests and 10 integration tests on real PostgreSQL 16 (Testcontainers): full
   flow in both templates and both languages, idempotent retry, 409 on closed submissions, 503 with nothing
-  stored, webhook delivered and signed, engineer feedback, reporting views, Power BI login refused on raw tables.
-- Frontend: component tests (Vitest + Testing Library) and production build.
+  stored, webhook delivered and signed, engineer feedback, the firewall portal from form to approval,
+  reporting views, Power BI login refused on raw tables.
+- Frontend: 6 component tests (Vitest + Testing Library: portal form, field errors, queue and approval,
+  checker flow) and production build.
 - Prompt evaluation against real local models whenever the prompt or golden set changes.
 
 **Not yet run**: the full `docker compose up` stack and the Render blueprint on a real machine / account.

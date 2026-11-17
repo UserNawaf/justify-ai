@@ -122,3 +122,22 @@ to answer "does a high score really mean the engineer could act on it?" (`report
 `render.yaml` provisions PostgreSQL, the API and the static web app. The demo uses Groq because a free instance
 cannot run a local model. The web app proxies `/api` through a Render rewrite, so the browser stays same-origin
 as in Docker (D12).
+
+### D26. The portal splits what code can check from what needs reading
+Addresses, ports and dates are form fields validated by code (IPv4/CIDR, no `0.0.0.0/0` source, ports
+1-65535, ranges at most 1000 wide, temporary rules end within a year). Only the reason is free text. The form
+values go to the justification as **confirmed fields** (`knownFields`, the same rule as answers: the model can
+never override them), so the model only looks for purpose, impact and data classification. A wrong IP is a
+validation error, not a model mistake, and the employee is never asked for something already typed. The generic
+API accepts `fields` too, so a ServiceNow or Jira adapter can pass the ticket's own fields the same way.
+
+### D27. Portal status follows the justification through the listener
+`AWAITING_INFO → PENDING_REVIEW` happens in the completion listener (the same hook as the webhook, run first),
+so it is correct whether the requester answers in the portal or through the plain justification API. Only
+`PENDING_REVIEW` can be decided; a rejection needs a note for the requester. Optimistic locking prevents two
+engineers deciding at once.
+
+### D28. No user accounts yet
+Requester and engineer names are typed in (the browser remembers them). Real identities and roles (who may
+approve) must come from the company SSO / API gateway in front of the service (D13), not from a home-made
+login. Until then the portal is a demo of the flow, not an access-controlled system.

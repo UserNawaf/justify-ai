@@ -47,7 +47,8 @@ export function RequestDetailPage({ s, lang, id, navigate }: {
 
   if (!r) return <p className={error ? "error" : "muted"}>{error ?? s.loading}</p>;
   const j = r.justification;
-  const when = (iso?: string) => (iso ? new Date(iso).toLocaleString(lang === "ar" ? "ar-SA-u-nu-latn" : "en-GB") : "");
+  const when = (iso?: string) =>
+    iso ? new Date(iso).toLocaleString(lang === "ar" ? "ar-SA-u-nu-latn" : "en-GB", { dateStyle: "medium", timeStyle: "short" }) : "";
 
   return (
     <>
@@ -61,10 +62,10 @@ export function RequestDetailPage({ s, lang, id, navigate }: {
         <h2>{s.details}</h2>
         <dl className="details">
           <dt>{s.requesterName}</dt><dd>{r.requesterName} · {r.employeeId} · {r.department}</dd>
-          <dt>{s.sourceHostname}</dt><dd dir="ltr" className="mono">{r.sourceHostname} ({r.sourceIp})</dd>
+          <dt>{s.sourceHostname}</dt><dd className="mono"><bdi dir="ltr">{r.sourceHostname} ({r.sourceIp})</bdi></dd>
           <dt>{s.destinationHost}</dt>
-          <dd dir="ltr" className="mono">{r.destinationHost}{r.destinationIp ? ` (${r.destinationIp})` : ""}</dd>
-          <dt>{s.ports}</dt><dd dir="ltr" className="mono">{r.protocol} {r.ports}</dd>
+          <dd className="mono"><bdi dir="ltr">{r.destinationHost}{r.destinationIp ? ` (${r.destinationIp})` : ""}</bdi></dd>
+          <dt>{s.ports}</dt><dd className="mono"><bdi dir="ltr">{r.protocol} {r.ports}</bdi></dd>
           <dt>{s.duration}</dt>
           <dd>{r.durationType === "PERMANENT" ? s.permanent : `${s.temporary} · ${r.endDate}`}</dd>
           <dt>{s.colDate}</dt><dd>{when(r.createdAt)}</dd>
