@@ -49,12 +49,12 @@ class JustificationControllerTest {
                 status == Status.NEEDS_INFO ? List.of("duration") : List.of(),
                 Map.of("port_protocol", "TCP 443"),
                 status == Status.NEEDS_INFO ? null : "Request type: Firewall rule request",
-                7.2, 0.833, 6, now, now, null, created);
+                7.2, 0.833, 6, now, now, null, created, "open 443");
     }
 
     @Test
     void submitReturns201WithQuestions() throws Exception {
-        when(service.submit(eq("firewall-rule"), any(), any(), any(), any())).thenReturn(snapshot(Status.NEEDS_INFO, true));
+        when(service.submit(eq("firewall-rule"), any(), any(), any(), any(), any())).thenReturn(snapshot(Status.NEEDS_INFO, true));
 
         mvc.perform(post("/api/v1/justifications").contentType(MediaType.APPLICATION_JSON)
                         .content("{\"templateId\":\"firewall-rule\",\"text\":\"open 443 to the bank\"}"))
@@ -67,7 +67,7 @@ class JustificationControllerTest {
 
     @Test
     void duplicateSubmitReturns200() throws Exception {
-        when(service.submit(any(), any(), any(), any(), any())).thenReturn(snapshot(Status.COMPLETE, false));
+        when(service.submit(any(), any(), any(), any(), any(), any())).thenReturn(snapshot(Status.COMPLETE, false));
 
         mvc.perform(post("/api/v1/justifications").contentType(MediaType.APPLICATION_JSON)
                         .content("{\"templateId\":\"firewall-rule\",\"text\":\"x\",\"source\":\"jira\",\"externalRef\":\"OPS-1\"}"))
@@ -132,7 +132,7 @@ class JustificationControllerTest {
 
     @Test
     void modelDownIs503WithoutInternalDetail() throws Exception {
-        when(service.submit(any(), any(), any(), any(), any()))
+        when(service.submit(any(), any(), any(), any(), any(), any()))
                 .thenThrow(new AiUnavailableException("ollama/llama3.1:8b at http://internal-host:11434 refused"));
 
         mvc.perform(post("/api/v1/justifications").contentType(MediaType.APPLICATION_JSON)

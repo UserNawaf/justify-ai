@@ -114,6 +114,23 @@ class EvaluationPipelineTest {
     }
 
     @Test
+    void knownFieldsAreConfirmedAndNeverAsked() {
+        EvaluationResult r = pipeline.evaluateText(template,
+                "port_protocol: UDP 53\nbusiness_purpose: DNS for the payroll app",
+                Map.of("port_protocol", "TCP 443", "source", "app-01 (10.0.0.1)", "destination", "N/A"));
+
+        assertThat(r.fields()).containsEntry("port_protocol", "TCP 443").containsEntry("source", "app-01 (10.0.0.1)")
+                .containsEntry("business_purpose", "DNS for the payroll app");
+        assertThat(r.missingFields()).containsExactly("destination", "duration", "impact_if_rejected");
+    }
+
+    @Test
+    void unknownKnownFieldIsRejected() {
+        assertThatThrownBy(() -> pipeline.evaluateText(template, "x", Map.of("colour", "blue")))
+                .isInstanceOf(IllegalArgumentException.class);
+    }
+
+    @Test
     void unknownAnswerKeyIsRejected() {
         assertThatThrownBy(() -> pipeline.applyAnswers(template, Map.of(), 5, Map.of("colour", "blue"), 2))
                 .isInstanceOf(IllegalArgumentException.class).hasMessageContaining("colour");

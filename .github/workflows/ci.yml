@@ -21,8 +21,10 @@ jobs:
         run: mvn -B verify
       - name: Integration test really ran
         run: |
-          f=target/failsafe-reports/TEST-com.justify.it.JustificationFlowIT.xml
-          grep -q 'skipped="0"' "$f" || { echo "JustificationFlowIT was skipped (Docker not found?)"; exit 1; }
+          for t in JustificationFlowIT FirewallPortalIT; do
+            f=target/failsafe-reports/TEST-com.justify.it.$t.xml
+            grep -q 'skipped="0"' "$f" || { echo "$t was skipped (Docker not found?)"; exit 1; }
+          done
       - name: Test reports
         if: always()
         uses: actions/upload-artifact@v4

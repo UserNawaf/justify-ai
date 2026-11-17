@@ -55,6 +55,12 @@ public class JustificationService {
 
     public SubmissionSnapshot submit(String templateId, String text, String source, String externalRef,
                                      Language lang) {
+        return submit(templateId, text, Map.of(), source, externalRef, lang);
+    }
+
+    /** @param knownFields values the caller already has (confirmed, the model does not override them) */
+    public SubmissionSnapshot submit(String templateId, String text, Map<String, String> knownFields, String source,
+                                     String externalRef, Language lang) {
         String src = (source == null || source.isBlank()) ? DEFAULT_SOURCE : source.strip();
         String ref = (externalRef == null || externalRef.isBlank()) ? null : externalRef.strip();
 
@@ -65,7 +71,7 @@ public class JustificationService {
             }
         }
         Template template = template(templateId);
-        EvaluationResult result = pipeline.evaluateText(template, text); // slow, no transaction
+        EvaluationResult result = pipeline.evaluateText(template, text, knownFields); // slow, no transaction
 
         try {
             return notifyIfClosed(tx.execute(status -> {
@@ -180,7 +186,7 @@ public class JustificationService {
                 e.getStatus(), e.getRoundCount(), pipeline.maxRounds(), questions, missing,
                 Map.copyOf(e.getExtractedFields()), e.getStandardizedText(), e.getQualityScore().doubleValue(),
                 e.getCompleteness().doubleValue(), e.getClarity(), e.getCreatedAt(), e.getUpdatedAt(),
-                e.getCompletedAt(), created);
+                e.getCompletedAt(), created, e.getRawText());
     }
 
     /**

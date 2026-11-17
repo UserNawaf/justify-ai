@@ -26,7 +26,7 @@ class WebhookNotifierTest {
         Instant now = Instant.parse("2026-11-17T10:00:00Z");
         return new SubmissionSnapshot(UUID.randomUUID(), "firewall-rule", "servicenow", "RITM0012345",
                 Status.COMPLETE, 2, 3, Map.of(), List.of(), Map.of(), "Request type: Firewall rule request",
-                9.2, 1.0, 8, now, now, now, false);
+                9.2, 1.0, 8, now, now, now, false, "text");
     }
 
     private WebhookNotifier notifier(WebhookReceiver receiver, String secret, int retries) {

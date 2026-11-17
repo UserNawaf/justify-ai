@@ -13,5 +13,9 @@ public record SubmitRequest(
         @Size(max = 64) @Pattern(regexp = "[A-Za-z0-9._-]*") String source,
         @Schema(description = "Ticket id in the calling system. Same source + externalRef returns the same submission.",
                 example = "RITM0012345")
-        @Size(max = 128) String externalRef) {
+        @Size(max = 128) String externalRef,
+        @Schema(description = "Fields the caller already knows (e.g. from a ticket form). They are confirmed: "
+                + "the model does not override them and they are never asked.",
+                example = "{\"port_protocol\": \"TCP 443\"}")
+        @Size(max = 50) java.util.Map<String, @Size(max = 2000) String> fields) {
 }

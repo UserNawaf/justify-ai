@@ -26,5 +26,6 @@ public record SubmissionSnapshot(
         Instant createdAt,
         Instant updatedAt,
         Instant completedAt,
-        boolean created) {
+        boolean created,
+        String rawText) {
 }

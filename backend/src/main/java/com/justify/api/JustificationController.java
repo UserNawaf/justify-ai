@@ -39,7 +39,8 @@ public class JustificationController {
     public ResponseEntity<JustificationResponse> submit(@Valid @RequestBody SubmitRequest request,
             @RequestParam(required = false) String lang,
             @RequestHeader(value = HttpHeaders.ACCEPT_LANGUAGE, required = false) String acceptLanguage) {
-        SubmissionSnapshot s = service.submit(request.templateId(), request.text(), request.source(),
+        SubmissionSnapshot s = service.submit(request.templateId(), request.text(),
+                request.fields() == null ? java.util.Map.of() : request.fields(), request.source(),
                 request.externalRef(), language(lang, acceptLanguage));
         JustificationResponse body = JustificationResponse.of(s);
         if (s.created()) {

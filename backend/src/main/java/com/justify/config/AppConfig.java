@@ -9,6 +9,10 @@ import com.justify.core.JustificationRenderer;
 import com.justify.core.QualityScorer;
 import com.justify.core.pipeline.AiClient;
 import com.justify.core.pipeline.EvaluationPipeline;
+import com.justify.firewall.FirewallFormValidator;
+import com.justify.firewall.FirewallRequestRepository;
+import com.justify.firewall.FirewallRequestService;
+import com.justify.firewall.FirewallStatusUpdater;
 import com.justify.notify.WebhookNotifier;
 import com.justify.persistence.FeedbackRepository;
 import com.justify.persistence.SubmissionRepository;
@@ -79,8 +83,28 @@ public class AppConfig {
                 props.pipeline().maxQuestions(), props.pipeline().maxRounds());
     }
 
+    /** Listeners run in order after a justification closes: portal status first, then the webhook. */
     @Bean
-    CompletionListener completionListener(JustifyProperties props, ObjectMapper mapper) {
+    CompletionListener completionListener(JustifyProperties props, ObjectMapper mapper,
+                                          FirewallRequestRepository firewallRequests, PlatformTransactionManager txm,
+                                          Clock clock) {
+        CompletionListener portal = new FirewallStatusUpdater(firewallRequests, new TransactionTemplate(txm), clock);
+        CompletionListener webhook = webhookListener(props, mapper);
+        return snapshot -> {
+            portal.onClosed(snapshot);
+            webhook.onClosed(snapshot);
+        };
+    }
+
+    @Bean
+    FirewallRequestService firewallRequestService(JustificationService justifications,
+                                                  FirewallRequestRepository repository,
+                                                  PlatformTransactionManager txm, Clock clock) {
+        return new FirewallRequestService(justifications, repository, new FirewallFormValidator(),
+                new TransactionTemplate(txm), clock);
+    }
+
+    private static CompletionListener webhookListener(JustifyProperties props, ObjectMapper mapper) {
         JustifyProperties.Webhook w = props.webhook();
         if (!w.enabled()) {
             return CompletionListener.NONE;

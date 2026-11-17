@@ -45,14 +45,34 @@ public final class EvaluationPipeline {
 
     /** Round 1: the employee's free text. */
     public EvaluationResult evaluateText(Template template, String text) {
+        return evaluateText(template, text, Map.of());
+    }
+
+    /**
+     * Round 1 with fields the caller already knows (a structured form, a ticket's own fields). Known values are
+     * confirmed: they win over whatever the model reads (same rule as answers), so the model only has to find
+     * what the form cannot capture, such as the business purpose.
+     *
+     * @throws IllegalArgumentException if a known field is not in the template
+     */
+    public EvaluationResult evaluateText(Template template, String text, Map<String, String> knownFields) {
         if (text == null || text.isBlank()) {
             throw new IllegalArgumentException("text must not be blank");
+        }
+        Map<String, String> known = knownFields == null ? Map.of() : knownFields;
+        for (String key : known.keySet()) {
+            if (!template.hasField(key)) {
+                throw new IllegalArgumentException("unknown field: " + key);
+            }
         }
         Extraction extraction = aiClient.extract(template, text);
         Map<String, String> fields = new LinkedHashMap<>();
         for (FieldSpec spec : template.fields()) {
+            String confirmed = known.get(spec.key());
             String value = extraction.fields().get(spec.key());
-            if (!Placeholders.isMissing(value)) {
+            if (!Placeholders.isMissing(confirmed)) {
+                fields.put(spec.key(), confirmed.strip());
+            } else if (!Placeholders.isMissing(value)) {
                 fields.put(spec.key(), value.strip());
             }
         }
