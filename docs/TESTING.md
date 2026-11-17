@@ -23,7 +23,7 @@ The model is replaced by `FakeAiClient`, which reads `"field: value"` lines, so 
 Starts PostgreSQL in Docker (Testcontainers), runs the Flyway migrations, and walks the whole flow through
 HTTP: vague text → questions → answers → COMPLETE → duplicate retry returns the same id → 409 on a closed
 submission → the row and its missing fields appear in the Power BI views. Skipped automatically if Docker is
-not available.
+not available (check the CI log says `Skipped: 0` for it).
 
 ## 3. Prompt evaluation: real model (`PromptEvalIT`, manual)
 
@@ -40,6 +40,11 @@ cd backend
 RUN_AI_EVAL=true mvn verify -Dit.test=PromptEvalIT
 # other model:  RUN_AI_EVAL=true OLLAMA_MODEL=qwen2.5:7b mvn verify -Dit.test=PromptEvalIT
 ```
+
+On GitHub, `.github/workflows/prompt-eval.yml` runs it automatically (Ollama `llama3.1:8b` and `qwen2.5:7b`
+on the runner's CPU, plus Groq models if the `GROQ_API_KEY` secret exists) whenever `PromptBuilder`, the
+golden set or the workflow change, and on demand from the Actions tab. The report is in the job summary.
+With Groq locally: `RUN_AI_EVAL=true AI_PROVIDER=groq GROQ_API_KEY=... mvn verify -Dit.test=PromptEvalIT`.
 
 Run it every time you change the prompt (`PromptBuilder`) or the model, and compare the numbers. Add a case
 to the golden file whenever a real justification is handled badly: the set should grow with experience.

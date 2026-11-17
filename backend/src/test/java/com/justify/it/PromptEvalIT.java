@@ -99,7 +99,7 @@ class PromptEvalIT {
                     correct++;
                     caseCorrect++;
                 } else {
-                    wrong.add(f.key() + (expected ? " (missed)" : " (invented)"));
+                    wrong.add(f.key() + (expected ? " (missed)" : " (invented: \"" + e.fields().get(f.key()) + "\")"));
                 }
             }
             (c.clear() ? clearScores : vagueScores).add(e.clarity());

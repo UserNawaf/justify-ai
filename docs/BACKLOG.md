@@ -7,13 +7,17 @@ Status: ✅ done in the MVP · ⬜ to do. Each epic below maps to a Jira Epic, e
 - ✅ Answer questions across rounds (max 3 rounds, max 3 questions per round)
 - ✅ Fixed-format rendering, quality score
 - ✅ Idempotent submit per source system, optimistic locking
-- ⬜ Run `mvn verify` locally / in CI and fix anything the sandbox could not compile (see README "Status")
+- ✅ Run `mvn verify` in CI: 39 unit + 6 integration tests green
+- ⬜ Start the full `docker compose up` stack on a real machine and click through the web app
 
 ## EPIC 2: AI model ✅ (first version)
 - ✅ Ollama client for Llama with JSON mode, strict parsing, retries
 - ✅ Golden dataset + evaluation test
+- ✅ Groq provider (`AI_PROVIDER=groq`) for larger hosted Llama models
+- ✅ Prompt-evaluation workflow on GitHub Actions
+- ⬜ Add the `GROQ_API_KEY` repository secret so the Groq models are measured too
 - ⬜ Run the evaluation on llama3.1:8b, record baseline numbers in this file
-- ⬜ Grow the golden set to 50 cases from real (anonymised) justifications
+- ⬜ Grow the golden set (10 cases today) to 50 cases from real (anonymised) justifications
 - ⬜ Compare 2-3 models (llama3.1:8b, qwen2.5:7b, a larger Llama) on accuracy vs latency
 
 ## EPIC 3: Templates

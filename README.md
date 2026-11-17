@@ -27,7 +27,7 @@ Data classification: Not provided
 ## Stack
 
 Java 21 · Spring Boot 3.5 · PostgreSQL 16 (JSONB, Flyway) · Llama via Ollama (runs locally, data stays on the
-machine) · React 19 + Vite (isolated frontend) · Docker Compose · JUnit 5, Mockito, Testcontainers · GitHub Actions
+machine) or Groq (cloud, optional) · React 19 + Vite (isolated frontend) · Docker Compose · JUnit 5, Mockito, Testcontainers · GitHub Actions
 
 ## Run it
 
@@ -83,7 +83,10 @@ Environment variables (defaults in `backend/src/main/resources/application.yml`)
 | Variable | Default | Purpose |
 |---|---|---|
 | `DB_URL`, `DB_USER`, `DB_PASSWORD` | local `justify` DB | Database |
-| `OLLAMA_URL`, `OLLAMA_MODEL` | `http://localhost:11434`, `llama3.1:8b` | Model |
+| `AI_PROVIDER` | `ollama` | `ollama` (local) or `groq` (cloud, dummy data only, see D18) |
+| `OLLAMA_URL`, `OLLAMA_MODEL` | `http://localhost:11434`, `llama3.1:8b` | Local model |
+| `GROQ_API_KEY`, `GROQ_MODEL` | empty, `llama-3.3-70b-versatile` | Groq model (only with `AI_PROVIDER=groq`) |
+| `AI_TIMEOUT` | `120s` | Read timeout for one model call |
 | `TEMPLATES_DIR` | empty | Folder with extra `*.yml` templates |
 | `APP_API_KEY` | empty (off) | Shared secret for server-to-server callers (`X-API-Key`) |
 | `CORS_ORIGINS` | `http://localhost:5173` | Only needed if a browser calls the API from another origin |
@@ -91,19 +94,22 @@ Environment variables (defaults in `backend/src/main/resources/application.yml`)
 
 ## Status of this MVP
 
-Built end to end by an AI agent working unattended; every decision is in [DECISIONS.md](DECISIONS.md).
+The source was rebuilt from the design docs (see D20) and is now verified end to end in CI.
 
-**Verified while building**
-- Core logic (pipeline, scoring, rendering, template and model-reply parsing) compiled and exercised with a smoke run.
-- Flyway migrations applied on PostgreSQL 16; the reporting views return correct numbers; the Power BI login can
-  read the views and is refused on the raw tables.
+**Verified on every push (GitHub Actions)**
+- `mvn verify`: 39 unit tests (pipeline, scoring, rendering, model-reply and template parsing, API key filter,
+  HTTP contract) and 6 integration tests on real PostgreSQL 16 via Testcontainers (full flow, idempotent
+  retry, 409 on closed submissions, 503 with nothing stored, reporting views, Power BI login refused on raw tables).
 - Frontend type-checks and builds for production.
 
-**Not yet run**: the full Spring Boot build and JUnit suite. The build sandbox could not reach Maven Central,
-so `mvn verify` has not been executed yet. Run it first (CI does it automatically on the first push) and fix
-anything it reports; likely candidates are small API mismatches, not design issues.
+**Prompt evaluation**: `.github/workflows/prompt-eval.yml` runs the golden set against local models (Ollama on
+the CI runner) whenever the prompt or the golden set changes. Add a `GROQ_API_KEY` repository secret to also
+measure Groq models. Baseline numbers: [docs/BACKLOG.md](docs/BACKLOG.md).
 
-**Before using real company data**: it runs a local model, but get the security team's approval anyway,
-especially for storing IP addresses and hostnames.
+**Not yet run**: `docker compose up` end to end on a real machine (each image builds in CI-like steps, but the
+compose stack itself has not been started).
+
+**Before using real company data**: it runs a local model by default, but get the security team's approval
+anyway, especially for storing IP addresses and hostnames. Never send real data to Groq without approval.
 
 Next steps: [docs/BACKLOG.md](docs/BACKLOG.md).

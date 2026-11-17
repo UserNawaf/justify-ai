@@ -71,8 +71,32 @@ The model can take tens of seconds; holding a DB connection that long would exha
 Only the save step is transactional.
 
 ### D16. Versions
-Java 21, Spring Boot 3.5.6, PostgreSQL 16, React 19 + Vite 8 + TypeScript 5.9. Default model `llama3.1:8b`.
+Java 21, Spring Boot 3.5.6, PostgreSQL 16, Testcontainers 1.21, React 19 + Vite 8 + TypeScript 5.9. Default model `llama3.1:8b`.
 
 ### D17. Out of scope for the MVP
 Kafka, microservices, Spring Security/SSO, the Teams/ServiceNow connectors themselves, AWS deployment.
 See `docs/BACKLOG.md`.
+
+### D18. Groq as a second provider (`AI_PROVIDER=groq`)
+`GroqAiClient` sits next to `OllamaAiClient` behind the same `AiClient` interface and reuses the prompt, parser
+and retries (`ChatAiClient`). Groq is OpenAI-compatible and fast, which makes it handy for comparing a larger
+Llama (70B) against the local 8B. **It is a cloud service**: use only dummy data with it until the security team
+approves. Ollama stays the default so company data never leaves the machine. The key is read from
+`GROQ_API_KEY` only; it is never committed or logged (`toString` masks it).
+
+### D19. Answers are not sent back to the model
+Round 2+ only merges the employee's answers into the fields (answers are trusted as-is, earlier values kept).
+No model call means answering is instant, deterministic and cannot fail with 503. Clarity keeps its round-1
+value. If answers ever need re-checking, re-extract in the service; the pipeline already supports it.
+
+### D20. Code rebuilt from these documents
+The first build's source code was lost; only the docs survived. The code was rebuilt from them, this time with
+the full `mvn verify` running on GitHub Actions (39 unit tests + 6 integration tests on real PostgreSQL).
+`backend/src/test/resources/docker-java.properties` pins Docker API 1.44 because current Docker engines refuse
+the old default that Testcontainers sends (otherwise the integration test is silently skipped).
+
+### D21. The prompt prefers null over a guess
+The first evaluation showed that almost all errors were *invented* values (e.g. "urgent" read as a duration).
+An invented value is worse than a missing one: nobody asks about it, so the engineer gets a wrong
+justification. The prompt now says "when in doubt, null" and names the common traps. Numbers before/after are
+in `docs/BACKLOG.md`.

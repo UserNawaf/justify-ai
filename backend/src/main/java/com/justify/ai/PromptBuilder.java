@@ -29,8 +29,14 @@ public final class PromptBuilder {
         sb.append("""
 
                 Rules:
-                1. Only use information that is actually in the text. Never guess or invent a value.
-                2. If a field is not stated in the text, its value is null.
+                1. Only use information that is explicitly written in the text. Never guess, infer or invent a value.
+                   When in doubt, use null: a missing value is asked for later, a wrong value is not.
+                2. If a field is not stated in the text, its value is null. In particular:
+                   - urgency ("urgent", "asap", "ضروري") is NOT a duration; duration is null unless the text says
+                     permanent/temporary or gives an end date or period;
+                   - impact_if_rejected is null unless the text says what happens if the request is refused;
+                   - business_purpose is null unless the text says why the access is needed; naming the systems
+                     involved is not a purpose; "manager approved" is not a purpose.
                 3. Write values in short, plain English. Copy hostnames, IP addresses, URLs, ports and dates exactly.
                 4. "clarity" is an integer 0-10: how specific and actionable the text is for the engineer who must
                    implement it (0 = useless, 10 = nothing to ask). Vague words like "the server" or "the bank" lower it.
