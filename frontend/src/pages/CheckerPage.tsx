@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { api, ApiError, type Justification, type TemplateView } from "../api";
 import { Questions, Score } from "../components/Questions";
+import { Breadcrumb } from "../components/Layout";
 import type { Lang, Strings } from "../i18n";
 
 /** Free-text justification checker (any template), the original Justify AI screen. */
@@ -62,6 +63,7 @@ export function CheckerPage({ s, lang }: { s: Strings; lang: Lang }) {
 
   return (
     <>
+      <Breadcrumb s={s} current={s.navCheck} />
       <h1>{s.title}</h1>
       <p className="muted">{s.subtitle}</p>
 

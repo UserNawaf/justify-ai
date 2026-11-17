@@ -51,10 +51,13 @@ Status: ✅ done in the MVP · ⬜ to do. Each epic below maps to a Jira Epic, e
 - ⬜ Deploy to AWS (ECS or EKS) with RDS PostgreSQL; model on a GPU instance or an approved hosted model
 
 ## EPIC 8: Firewall request portal
+- ✅ Enterprise Firewall Access Request form (D29): type, priority, application, IPs, port, protocol, environment, duration presets, start date, notes, save draft
 - ✅ Validated request form, ticket numbers, AI-checked justification with confirmed form fields
 - ✅ Network team queue, request page, approve / reject with note
 - ✅ `reporting.v_firewall_requests`
 - ⬜ Real identities and an approver role from SSO (D28)
+- ⬜ Several rules in one request (rows of source / destination / port)
+- ⬜ Attachments (network diagram, vendor document)
 - ⬜ Email the requester when the request needs info or is decided
 - ⬜ Export an approved rule in the firewall team's change format (CSV / their ticketing tool)
 

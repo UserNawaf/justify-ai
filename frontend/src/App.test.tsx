@@ -33,6 +33,7 @@ function respond(body: unknown, status = 200) {
 beforeEach(() => {
   calls = [];
   localStorage.clear();
+  localStorage.setItem("lang", "ar");
   window.location.hash = "#/check";
   vi.stubGlobal(
     "fetch",

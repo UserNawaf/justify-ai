@@ -67,7 +67,8 @@ The prompt evaluation is not in CI (it needs a model and its results vary).
 
 ## Frontend
 
-`npm test` runs Vitest + Testing Library against a mocked `fetch`: the portal form → AI question → submitted,
-server field errors shown next to the right inputs, the queue → request page → approval, and the checker flow
+`npm test` runs Vitest + Testing Library against a mocked `fetch`: required fields checked before calling the
+API, the portal form → AI question → submitted, server field errors under the right inputs, save draft, duration
+presets → end date, the queue → request page → approval, and the checker flow
 in Arabic (RTL), the friendly 503 message and switching to English. `npm run build` type-checks and builds.
 Both run in CI.

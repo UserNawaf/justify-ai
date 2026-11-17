@@ -141,3 +141,12 @@ engineers deciding at once.
 Requester and engineer names are typed in (the browser remembers them). Real identities and roles (who may
 approve) must come from the company SSO / API gateway in front of the service (D13), not from a home-made
 login. Until then the portal is a demo of the flow, not an access-controlled system.
+
+### D29. The request form follows the standard enterprise layout
+Numbered sections (Request Information, Network Configuration, Business Justification, Additional
+Information), a summary strip (request number, status, requested by, date), Submit / Save Draft / Cancel, in the
+navy style of a corporate IT service portal, so it looks and behaves like the forms people already use. Network
+fields are IP-first (hostnames optional), because the firewall rule is written in IPs. Duration is a preset
+(permanent, 1/3/6/12 months, custom end date) turned into `durationType` + `endDate` by the UI; the API keeps
+the two plain fields. Drafts are kept in the browser only (no half-filled rows in the database). English is the
+default language, Arabic one click away.

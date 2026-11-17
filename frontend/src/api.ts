@@ -80,29 +80,54 @@ export const api = {
 
 export type RequestStatus = "AWAITING_INFO" | "PENDING_REVIEW" | "APPROVED" | "REJECTED";
 
-export interface FirewallForm {
+export type RequestType = "NEW_ACCESS" | "MODIFY_ACCESS" | "REMOVE_ACCESS";
+export type Priority = "LOW" | "MEDIUM" | "HIGH" | "CRITICAL";
+export type Environment = "PRODUCTION" | "UAT" | "DEVELOPMENT" | "DR";
+
+export interface Profile {
   requesterName: string;
   employeeId: string;
   department: string;
   email: string;
-  sourceHostname: string;
-  sourceIp: string;
-  destinationHost: string;
-  destinationIp: string;
-  protocol: "TCP" | "UDP";
-  ports: string;
-  durationType: "PERMANENT" | "TEMPORARY";
-  endDate: string;
-  justification: string;
 }
 
-export interface FirewallRequest extends Omit<FirewallForm, "justification" | "email" | "destinationIp" | "endDate"> {
+/** What the form collects (requester details come from the profile). */
+export interface FirewallForm {
+  requestType: RequestType | "";
+  priority: Priority | "";
+  applicationName: string;
+  sourceIp: string;
+  sourceHostname: string;
+  destinationIp: string;
+  destinationHost: string;
+  ports: string;
+  protocol: "TCP" | "UDP";
+  environment: Environment | "";
+  justification: string;
+  duration: "" | "PERMANENT" | "1" | "3" | "6" | "12" | "CUSTOM";
+  startDate: string;
+  endDate: string;
+  notes: string;
+}
+
+export interface FirewallRequest extends Profile {
   id: string;
   ticketNo: string;
   status: RequestStatus;
-  email?: string;
-  destinationIp?: string;
+  requestType: RequestType;
+  priority: Priority;
+  applicationName: string;
+  environment: Environment;
+  sourceIp: string;
+  sourceHostname?: string;
+  destinationIp: string;
+  destinationHost?: string;
+  protocol: "TCP" | "UDP";
+  ports: string;
+  durationType: "PERMANENT" | "TEMPORARY";
+  startDate: string;
   endDate?: string;
+  notes?: string;
   justification: {
     id: string;
     status: Status;
@@ -118,6 +143,7 @@ export interface FirewallRequest extends Omit<FirewallForm, "justification" | "e
   decisionNote?: string;
   decidedAt?: string;
   createdAt: string;
+  updatedAt?: string;
 }
 
 export interface RequestSummary {
@@ -126,6 +152,9 @@ export interface RequestSummary {
   status: RequestStatus;
   requesterName: string;
   department: string;
+  applicationName: string;
+  environment: Environment;
+  priority: Priority;
   source: string;
   destination: string;
   service: string;
@@ -171,12 +200,8 @@ async function callForm<T>(path: string, body: unknown): Promise<T> {
 }
 
 export const portal = {
-  create: (form: FirewallForm) => {
-    const body: Record<string, unknown> = { ...form };
-    for (const k of ["email", "destinationIp", "endDate"]) if (!body[k]) delete body[k];
-    if (form.durationType === "PERMANENT") delete body.endDate;
-    return callForm<FirewallRequest>("/firewall-requests", body);
-  },
+  create: (form: FirewallForm, profile: Profile) =>
+    callForm<FirewallRequest>("/firewall-requests", toRequestBody(form, profile)),
   get: (id: string) => call<FirewallRequest>(`/firewall-requests/${id}`),
   list: (params: { status?: string; q?: string; employeeId?: string; page?: number }) => {
     const qs = new URLSearchParams();
@@ -188,3 +213,51 @@ export const portal = {
   decide: (id: string, decision: "APPROVED" | "REJECTED", engineer: string, note: string) =>
     callForm<FirewallRequest>(`/firewall-requests/${id}/decision`, { decision, engineer, note: note || undefined }),
 };
+
+/** "3" months from the start date, or the custom end date; the API only knows PERMANENT / TEMPORARY + endDate. */
+export function endDateFor(form: Pick<FirewallForm, "duration" | "startDate" | "endDate">): string | undefined {
+  if (form.duration === "CUSTOM") return form.endDate || undefined;
+  if (!form.duration || form.duration === "PERMANENT" || !form.startDate) return undefined;
+  const d = new Date(`${form.startDate}T00:00:00Z`);
+  d.setUTCMonth(d.getUTCMonth() + Number(form.duration));
+  return d.toISOString().slice(0, 10);
+}
+
+export function toRequestBody(form: FirewallForm, profile: Profile): Record<string, unknown> {
+  const body: Record<string, unknown> = {
+    ...profile,
+    requestType: form.requestType || undefined,
+    priority: form.priority || undefined,
+    applicationName: form.applicationName,
+    sourceIp: form.sourceIp,
+    sourceHostname: form.sourceHostname || undefined,
+    destinationIp: form.destinationIp,
+    destinationHost: form.destinationHost || undefined,
+    ports: form.ports,
+    protocol: form.protocol,
+    environment: form.environment || undefined,
+    justification: form.justification,
+    durationType: form.duration === "PERMANENT" ? "PERMANENT" : form.duration ? "TEMPORARY" : undefined,
+    startDate: form.startDate || undefined,
+    endDate: form.duration && form.duration !== "PERMANENT" ? endDateFor(form) : undefined,
+    notes: form.notes || undefined,
+  };
+  if (!profile.email) delete body.email;
+  return body;
+}
+
+export function loadProfile(): Profile {
+  try {
+    return { requesterName: "", employeeId: "", department: "", email: "", ...JSON.parse(localStorage.getItem("profile") ?? "{}") };
+  } catch {
+    return { requesterName: "", employeeId: "", department: "", email: "" };
+  }
+}
+
+export function saveProfile(p: Profile) {
+  try {
+    localStorage.setItem("profile", JSON.stringify(p));
+  } catch {
+    /* storage unavailable */
+  }
+}

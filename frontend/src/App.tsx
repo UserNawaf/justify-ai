@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
-import { setLanguage } from "./api";
+import { loadProfile, setLanguage, type Profile } from "./api";
+import { ProfileDialog, Shell } from "./components/Layout";
 import { t, type Lang } from "./i18n";
 import { CheckerPage } from "./pages/CheckerPage";
 import { NewRequestPage } from "./pages/NewRequestPage";
@@ -28,13 +29,15 @@ function useHashRoute(): [string, (path: string) => void] {
 export default function App() {
   const [lang, setLang] = useState<Lang>(() => {
     try {
-      return (localStorage.getItem("lang") as Lang) || "ar";
+      return (localStorage.getItem("lang") as Lang) || "en";
     } catch {
-      return "ar";
+      return "en";
     }
   });
   const s = t(lang);
   const [path, navigate] = useHashRoute();
+  const [profile, setProfile] = useState<Profile>(loadProfile);
+  const [profileOpen, setProfileOpen] = useState(false);
   setLanguage(lang);
 
   useEffect(() => {
@@ -48,39 +51,21 @@ export default function App() {
   }, [lang]);
 
   const detail = path.match(/^\/requests\/([0-9a-f-]{36})$/);
-  const nav = [
-    { path: "/new", label: s.navNew },
-    { path: "/requests", label: s.navRequests },
-    { path: "/check", label: s.navCheck },
-  ];
 
   return (
-    <div className="page">
-      <header>
-        <div className="brand">
-          <span className="logo">J</span> Justify AI
-        </div>
-        <nav>
-          {nav.map((n) => (
-            <a key={n.path} href={`#${n.path}`} className={path.startsWith(n.path) ? "active" : undefined}>
-              {n.label}
-            </a>
-          ))}
-        </nav>
-        <button className="link" onClick={() => setLang(lang === "ar" ? "en" : "ar")}>{s.switchLang}</button>
-      </header>
-
-      <main>
-        {detail ? (
-          <RequestDetailPage key={detail[1]} s={s} lang={lang} id={detail[1]} navigate={navigate} />
-        ) : path.startsWith("/requests") ? (
-          <RequestsPage s={s} lang={lang} navigate={navigate} />
-        ) : path.startsWith("/check") ? (
-          <CheckerPage s={s} lang={lang} />
-        ) : (
-          <NewRequestPage s={s} navigate={navigate} />
-        )}
-      </main>
-    </div>
+    <Shell s={s} path={path} onToggleLang={() => setLang(lang === "ar" ? "en" : "ar")} onProfile={() => setProfileOpen(true)}>
+      {detail ? (
+        <RequestDetailPage key={detail[1]} s={s} lang={lang} id={detail[1]} />
+      ) : path.startsWith("/requests") ? (
+        <RequestsPage s={s} lang={lang} navigate={navigate} />
+      ) : path.startsWith("/check") ? (
+        <CheckerPage s={s} lang={lang} />
+      ) : (
+        <NewRequestPage s={s} lang={lang} profile={profile} onNeedProfile={() => setProfileOpen(true)} navigate={navigate} />
+      )}
+      {profileOpen && (
+        <ProfileDialog s={s} onClose={(p) => { if (p) setProfile(p); setProfileOpen(false); }} />
+      )}
+    </Shell>
   );
 }

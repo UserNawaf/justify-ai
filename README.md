@@ -26,23 +26,27 @@ two go back and forth on Teams or email asking "what do you mean?". Justify AI s
 
 </details>
 
-## Firewall request portal
+## Firewall Access Request portal
 
-A complete request flow like a company IT portal: the requester fills in the technical fields (device name,
-IPs, ports, duration), which **code** validates, and explains **why** in their own words, which **AI** checks.
-Each request gets a ticket number (`FW-2026-00042`), goes to the network team's queue once the justification
-is good enough, and is approved or rejected with a note. Everything is stored and reported.
+A complete request flow in the style of an enterprise IT service portal. The requester fills in a standard
+**Firewall Access Request** (request type, priority, application, source / destination IP, port, protocol,
+environment, duration, start date); **code** validates every technical field. The **Business Justification**
+is free text, and **AI** checks it before it reaches the network security team, asking at most 3 short
+questions if the purpose or the impact is missing. Each request gets a number (`FW-2026-00042`), lands in the
+team's queue, and is approved or rejected with a note. Everything is stored and reported in Power BI.
 
-| New request | AI asks only for the missing "why" |
+![Firewall Access Request](docs/images/4-portal-form.png)
+
+| AI asks only for what is missing | Network security queue |
 |---|---|
-| ![Form](docs/images/4-portal-form-ar.png) | ![Question](docs/images/5-portal-question-ar.png) |
+| ![Question](docs/images/5-portal-question.png) | ![Requests](docs/images/6-portal-list.png) |
 
-| Network team queue | Review and decide |
-|---|---|
-| ![Requests](docs/images/6-portal-list-ar.png) | ![Review](docs/images/7-portal-review-ar.png) |
+| Review and decide | Mobile | Arabic (RTL) |
+|---|---|---|
+| ![Review](docs/images/7-portal-review.png) | ![Mobile](docs/images/9-portal-mobile.png) | ![Arabic](docs/images/8-portal-form-ar.png) |
 
 The form values are passed to the justification as confirmed fields, so the model never guesses an IP or a
-port and the employee is never asked for something they already typed ([D26](DECISIONS.md#d26-the-portal-splits-what-code-can-check-from-what-needs-reading)).
+port and the requester is never asked for something they already typed ([D26](DECISIONS.md#d26-the-portal-splits-what-code-can-check-from-what-needs-reading)).
 
 ## Justification checker
 
@@ -75,7 +79,8 @@ Field accuracy = for each required field, did the model correctly say present / 
 
 ## Features
 
-- Firewall request portal: validated form, ticket numbers, statuses, network team queue, approve / reject
+- Firewall Access Request portal: enterprise form (type, priority, application, IPs, port, protocol, environment,
+  duration, start date), save draft, request numbers, network security queue, approve / reject, request history
 - Free text in Arabic, English or both; questions and labels localized (`Accept-Language` / `?lang=ar`)
 - Request types as YAML templates, no code: firewall rule and access request bundled, more via `TEMPLATES_DIR`
 - Max 3 questions per round, max 3 rounds, then `INCOMPLETE` instead of blocking the employee
@@ -122,11 +127,12 @@ curl -s localhost:8080/api/v1/justifications/<id>/answers -H 'Content-Type: appl
   -d '{"answers":{"duration":"Permanent","impact_if_rejected":"Salaries are paid late"}}'
 # -> status COMPLETE + standardizedText + qualityScore
 
-curl -s localhost:8080/api/v1/firewall-requests -H 'Content-Type: application/json' -H 'Accept-Language: ar' -d '{
+curl -s localhost:8080/api/v1/firewall-requests -H 'Content-Type: application/json' -d '{
   "requesterName":"Nawaf","employeeId":"E10234","department":"Finance IT",
-  "sourceHostname":"payroll-app-01","sourceIp":"10.10.5.20","destinationHost":"api.bank.example",
-  "protocol":"TCP","ports":"443","durationType":"PERMANENT",
-  "justification":"نظام الرواتب يرسل ملف الرواتب الشهري للبنك"}'
+  "requestType":"NEW_ACCESS","priority":"HIGH","applicationName":"Payroll System",
+  "sourceIp":"10.10.5.20","destinationIp":"203.0.113.10","ports":"443","protocol":"TCP",
+  "environment":"PRODUCTION","durationType":"PERMANENT","startDate":"2026-11-20",
+  "justification":"Payroll sends the monthly salary file to the bank"}'
 # -> 201, ticketNo FW-2026-00001, status AWAITING_INFO, and only the "why" is asked (impact if rejected)
 
 curl -s localhost:8080/api/v1/justifications/<id>/feedback -H 'Content-Type: application/json' \
@@ -186,8 +192,8 @@ Environment variables (defaults in `backend/src/main/resources/application.yml`)
   flow in both templates and both languages, idempotent retry, 409 on closed submissions, 503 with nothing
   stored, webhook delivered and signed, engineer feedback, the firewall portal from form to approval,
   reporting views, Power BI login refused on raw tables.
-- Frontend: 6 component tests (Vitest + Testing Library: portal form, field errors, queue and approval,
-  checker flow) and production build.
+- Frontend: 9 component tests (Vitest + Testing Library: required fields, submit → AI question → submitted,
+  server field errors, save draft, queue and approval, duration presets, checker flow) and production build.
 - Prompt evaluation against real local models whenever the prompt or golden set changes.
 
 **Not yet run**: the full `docker compose up` stack and the Render blueprint on a real machine / account.

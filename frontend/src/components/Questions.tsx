@@ -16,25 +16,24 @@ export function Questions({ s, questions, round, maxRounds, busy, onSubmit }: Pr
   const canAnswer = Object.values(answers).some((v) => v.trim() !== "");
   return (
     <form
-      className="card"
+      className="questions"
       onSubmit={(e) => {
         e.preventDefault();
         if (canAnswer) onSubmit(answers);
       }}
     >
-      <div className="row">
-        <h2>{s.questionsTitle}</h2>
+      <div className="row-between">
+        <span className="label">{s.questionsTitle}</span>
         <span className="pill">{s.round(round, maxRounds)}</span>
       </div>
       {Object.entries(questions).map(([key, q]) => (
-        <label key={key}>
-          <span dir="auto" className="question">
-            {q}
-          </span>
-          <input dir="auto" value={answers[key] ?? ""} onChange={(e) => setAnswers({ ...answers, [key]: e.target.value })} />
-        </label>
+        <div className="field" key={key}>
+          <label htmlFor={`q-${key}`} dir="auto">{q}</label>
+          <input id={`q-${key}`} dir="auto" value={answers[key] ?? ""}
+            onChange={(e) => setAnswers({ ...answers, [key]: e.target.value })} />
+        </div>
       ))}
-      <button className="primary" disabled={busy || !canAnswer}>
+      <button className="btn primary" disabled={busy || !canAnswer}>
         {busy ? s.working : s.send}
       </button>
     </form>
