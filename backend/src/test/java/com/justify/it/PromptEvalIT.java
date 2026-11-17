@@ -76,7 +76,8 @@ class PromptEvalIT {
         int judged = 0;
         List<Integer> clearScores = new ArrayList<>();
         List<Integer> vagueScores = new ArrayList<>();
-        StringBuilder report = new StringBuilder("\n=== Prompt evaluation ===\n");
+        StringBuilder report = new StringBuilder("\n=== Prompt evaluation: " + env("AI_PROVIDER", "ollama") + " / "
+                + ("groq".equalsIgnoreCase(env("AI_PROVIDER", "ollama")) ? env("GROQ_MODEL", "llama-3.3-70b-versatile") : env("OLLAMA_MODEL", "llama3.1:8b")) + " ===\n");
         long started = System.nanoTime();
 
         for (Case c : cases) {
@@ -85,7 +86,7 @@ class PromptEvalIT {
                 e = ai.extract(template, c.text());
             } catch (AiUnavailableException ex) {
                 unusable++;
-                report.append(String.format("%-24s UNUSABLE%n", c.id()));
+                report.append(String.format("%-24s UNUSABLE (%s)%n", c.id(), ex.getMessage()));
                 continue;
             }
             int caseCorrect = 0;
@@ -113,6 +114,9 @@ class PromptEvalIT {
                         + "clarity clear/vague: %.1f / %.1f%nseconds: %.1f%n", unusable, accuracy * 100,
                 minAccuracy * 100, clearAvg, vagueAvg, (System.nanoTime() - started) / 1e9));
         System.out.println(report);
+        java.nio.file.Path out = java.nio.file.Path.of(System.getProperty("eval.report", "target/prompt-eval.txt"));
+        java.nio.file.Files.createDirectories(out.toAbsolutePath().getParent());
+        java.nio.file.Files.writeString(out, report.toString());
 
         assertThat(unusable).as("unusable replies").isZero();
         assertThat(accuracy).as("field accuracy").isGreaterThanOrEqualTo(minAccuracy);
