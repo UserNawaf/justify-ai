@@ -9,7 +9,10 @@ import com.justify.core.JustificationRenderer;
 import com.justify.core.QualityScorer;
 import com.justify.core.pipeline.AiClient;
 import com.justify.core.pipeline.EvaluationPipeline;
+import com.justify.notify.WebhookNotifier;
+import com.justify.persistence.FeedbackRepository;
 import com.justify.persistence.SubmissionRepository;
+import com.justify.service.CompletionListener;
 import com.justify.service.JustificationService;
 import com.justify.template.TemplateRegistry;
 import com.justify.template.YamlTemplateParser;
@@ -77,10 +80,28 @@ public class AppConfig {
     }
 
     @Bean
+    CompletionListener completionListener(JustifyProperties props, ObjectMapper mapper) {
+        JustifyProperties.Webhook w = props.webhook();
+        if (!w.enabled()) {
+            return CompletionListener.NONE;
+        }
+        log.info("Webhook enabled: {}", w.url());
+        if (w.secret() == null || w.secret().isBlank()) {
+            log.warn("WEBHOOK_SECRET is empty: webhook calls are not signed");
+        }
+        return new WebhookNotifier(java.net.URI.create(w.url()), w.secret(),
+                java.net.http.HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(5)).build(), mapper,
+                java.util.concurrent.Executors.newVirtualThreadPerTaskExecutor(),
+                java.util.List.of(Duration.ofSeconds(2), Duration.ofSeconds(10), Duration.ofSeconds(30)), w.timeout());
+    }
+
+    @Bean
     JustificationService justificationService(EvaluationPipeline pipeline, TemplateRegistry templates,
-                                              SubmissionRepository repository, PlatformTransactionManager txm,
-                                              ObjectMapper mapper, Clock clock) {
-        return new JustificationService(pipeline, templates, repository, new TransactionTemplate(txm), mapper, clock);
+                                              SubmissionRepository repository, FeedbackRepository feedback,
+                                              PlatformTransactionManager txm, ObjectMapper mapper, Clock clock,
+                                              CompletionListener listener) {
+        return new JustificationService(pipeline, templates, repository, feedback, new TransactionTemplate(txm),
+                mapper, clock, listener);
     }
 
     private static SimpleClientHttpRequestFactory factory(Duration timeout) {

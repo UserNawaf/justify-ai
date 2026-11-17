@@ -61,12 +61,13 @@ public final class YamlTemplateParser {
                 throw new TemplateException(sourceName + ": field '" + key + "': 'required' must be true or false");
             }
             fields.add(new FieldSpec(key, string(f, "label", sourceName, true), Boolean.TRUE.equals(required),
-                    string(f, "question", sourceName, false), string(f, "description", sourceName, false)));
+                    string(f, "question", sourceName, false), string(f, "description", sourceName, false),
+                    string(f, "label_ar", sourceName, false), string(f, "question_ar", sourceName, false)));
         }
         if (fields.stream().noneMatch(FieldSpec::required)) {
             throw new TemplateException(sourceName + ": at least one field must be required");
         }
-        return new Template(id, name, description, fields);
+        return new Template(id, name, description, fields, string(map, "name_ar", sourceName, false));
     }
 
     private static String string(Map<?, ?> map, String key, String source, boolean mandatory) {

@@ -54,7 +54,7 @@ class JustificationControllerTest {
 
     @Test
     void submitReturns201WithQuestions() throws Exception {
-        when(service.submit(eq("firewall-rule"), any(), any(), any())).thenReturn(snapshot(Status.NEEDS_INFO, true));
+        when(service.submit(eq("firewall-rule"), any(), any(), any(), any())).thenReturn(snapshot(Status.NEEDS_INFO, true));
 
         mvc.perform(post("/api/v1/justifications").contentType(MediaType.APPLICATION_JSON)
                         .content("{\"templateId\":\"firewall-rule\",\"text\":\"open 443 to the bank\"}"))
@@ -67,7 +67,7 @@ class JustificationControllerTest {
 
     @Test
     void duplicateSubmitReturns200() throws Exception {
-        when(service.submit(any(), any(), any(), any())).thenReturn(snapshot(Status.COMPLETE, false));
+        when(service.submit(any(), any(), any(), any(), any())).thenReturn(snapshot(Status.COMPLETE, false));
 
         mvc.perform(post("/api/v1/justifications").contentType(MediaType.APPLICATION_JSON)
                         .content("{\"templateId\":\"firewall-rule\",\"text\":\"x\",\"source\":\"jira\",\"externalRef\":\"OPS-1\"}"))
@@ -94,7 +94,7 @@ class JustificationControllerTest {
 
     @Test
     void unknownAnswerFieldIs400() throws Exception {
-        when(service.answer(eq(ID), anyMap())).thenThrow(new IllegalArgumentException("unknown field: colour"));
+        when(service.answer(eq(ID), anyMap(), any())).thenThrow(new IllegalArgumentException("unknown field: colour"));
 
         mvc.perform(post("/api/v1/justifications/" + ID + "/answers").contentType(MediaType.APPLICATION_JSON)
                         .content("{\"answers\":{\"colour\":\"blue\"}}"))
@@ -103,8 +103,18 @@ class JustificationControllerTest {
     }
 
     @Test
+    void languageComesFromQueryThenHeader() throws Exception {
+        when(service.get(eq(ID), eq(com.justify.core.Language.AR))).thenReturn(snapshot(Status.NEEDS_INFO, false));
+
+        mvc.perform(get("/api/v1/justifications/" + ID).header("Accept-Language", "ar-SA,ar;q=0.9"))
+                .andExpect(status().isOk());
+        mvc.perform(get("/api/v1/justifications/" + ID + "?lang=ar").header("Accept-Language", "en"))
+                .andExpect(status().isOk());
+    }
+
+    @Test
     void unknownSubmissionIs404() throws Exception {
-        when(service.get(ID)).thenThrow(new NotFoundException("submission not found"));
+        when(service.get(eq(ID), any())).thenThrow(new NotFoundException("submission not found"));
 
         mvc.perform(get("/api/v1/justifications/" + ID))
                 .andExpect(status().isNotFound())
@@ -113,7 +123,7 @@ class JustificationControllerTest {
 
     @Test
     void closedSubmissionIs409() throws Exception {
-        when(service.answer(eq(ID), anyMap())).thenThrow(new ConflictException("submission is already COMPLETE"));
+        when(service.answer(eq(ID), anyMap(), any())).thenThrow(new ConflictException("submission is already COMPLETE"));
 
         mvc.perform(post("/api/v1/justifications/" + ID + "/answers").contentType(MediaType.APPLICATION_JSON)
                         .content("{\"answers\":{\"duration\":\"Permanent\"}}"))
@@ -122,7 +132,7 @@ class JustificationControllerTest {
 
     @Test
     void modelDownIs503WithoutInternalDetail() throws Exception {
-        when(service.submit(any(), any(), any(), any()))
+        when(service.submit(any(), any(), any(), any(), any()))
                 .thenThrow(new AiUnavailableException("ollama/llama3.1:8b at http://internal-host:11434 refused"));
 
         mvc.perform(post("/api/v1/justifications").contentType(MediaType.APPLICATION_JSON)

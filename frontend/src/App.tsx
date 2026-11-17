@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { api, ApiError, type Justification, type TemplateView } from "./api";
+import { api, ApiError, setLanguage, type Justification, type TemplateView } from "./api";
 import { t, type Lang } from "./i18n";
 
 export default function App() {
@@ -20,6 +20,8 @@ export default function App() {
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
 
+  setLanguage(lang);
+
   useEffect(() => {
     document.documentElement.lang = lang;
     document.documentElement.dir = lang === "ar" ? "rtl" : "ltr";
@@ -30,6 +32,7 @@ export default function App() {
     }
   }, [lang]);
 
+  // Reload localized template names, and the open questions, when the language changes.
   useEffect(() => {
     api
       .templates()
@@ -38,7 +41,11 @@ export default function App() {
         if (list.length && !list.some((x) => x.id === templateId)) setTemplateId(list[0].id);
       })
       .catch(() => setTemplates([]));
-  }, []);
+    if (current?.status === "NEEDS_INFO") {
+      api.get(current.id).then(setCurrent).catch(() => undefined);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [lang]);
 
   async function run(action: () => Promise<Justification>) {
     setBusy(true);
@@ -142,7 +149,7 @@ export default function App() {
             </div>
             {Object.entries(questions).map(([key, q]) => (
               <label key={key}>
-                <span dir="ltr" className="question">
+                <span dir="auto" className="question">
                   {q}
                 </span>
                 <input

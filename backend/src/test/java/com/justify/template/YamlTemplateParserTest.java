@@ -22,6 +22,22 @@ class YamlTemplateParserTest {
     }
 
     @Test
+    void everyBundledTemplateIsValidAndFullyTranslated() throws Exception {
+        var resolver = new org.springframework.core.io.support.PathMatchingResourcePatternResolver();
+        var files = resolver.getResources("classpath:templates/*.yml");
+        assertThat(files).hasSizeGreaterThanOrEqualTo(2);
+        for (var r : files) {
+            Template t = parser.parse(new String(r.getInputStream().readAllBytes(), java.nio.charset.StandardCharsets.UTF_8),
+                    r.getFilename());
+            assertThat(t.nameAr()).as(t.id() + " name_ar").isNotNull();
+            assertThat(t.fields()).as(t.id()).allSatisfy(f -> {
+                assertThat(f.labelAr()).as(f.key() + " label_ar").isNotNull();
+                assertThat(f.questionAr()).as(f.key() + " question_ar").isNotNull();
+            });
+        }
+    }
+
+    @Test
     void defaultsQuestionFromLabel() {
         Template t = parser.parse("""
                 id: access-request

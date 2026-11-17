@@ -57,6 +57,9 @@ justify:
       url: ${GROQ_URL:https://api.groq.com/openai/v1}
       api-key: ${GROQ_API_KEY:}
       model: ${GROQ_MODEL:llama-3.3-70b-versatile}
+  webhook:
+    url: ${WEBHOOK_URL:}            # POSTed when a submission becomes COMPLETE / INCOMPLETE
+    secret: ${WEBHOOK_SECRET:}      # HMAC-SHA256 signature in X-Justify-Signature
   security:
     api-key: ${APP_API_KEY:}
     cors-origins: ${CORS_ORIGINS:http://localhost:5173}

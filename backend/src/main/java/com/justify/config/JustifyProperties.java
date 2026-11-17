@@ -6,7 +6,7 @@ import java.time.Duration;
 import java.util.List;
 
 @ConfigurationProperties(prefix = "justify")
-public record JustifyProperties(Pipeline pipeline, Ai ai, Security security, String templatesDir) {
+public record JustifyProperties(Pipeline pipeline, Ai ai, Security security, String templatesDir, Webhook webhook) {
 
     public JustifyProperties {
         if (pipeline == null) {
@@ -17,6 +17,25 @@ public record JustifyProperties(Pipeline pipeline, Ai ai, Security security, Str
         }
         if (security == null) {
             security = new Security(null, null);
+        }
+        if (webhook == null) {
+            webhook = new Webhook(null, null, null);
+        }
+    }
+
+    /** Outbound webhook when a submission closes. Off when url is empty. */
+    public record Webhook(String url, String secret, Duration timeout) {
+        public Webhook {
+            if (timeout == null) timeout = Duration.ofSeconds(10);
+        }
+
+        public boolean enabled() {
+            return url != null && !url.isBlank();
+        }
+
+        @Override
+        public String toString() {
+            return "Webhook[url=" + url + ", secret=" + (secret == null || secret.isBlank() ? "unset" : "***") + "]";
         }
     }
 

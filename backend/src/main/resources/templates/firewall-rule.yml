@@ -1,6 +1,7 @@
 # Firewall rule request. Field order = order in the rendered justification.
 id: firewall-rule
 name: Firewall rule request
+name_ar: طلب فتح قاعدة جدار ناري
 description: Request to open network access between a source and a destination.
 fields:
   - key: business_purpose
@@ -8,33 +9,47 @@ fields:
     required: true
     description: Why the access is needed, in business terms (which application, which process).
     question: What is the business purpose of this rule? Which application or process needs it?
+    label_ar: الغرض من الطلب
+    question_ar: وش الغرض من هالقاعدة؟ أي نظام أو عملية تحتاجها؟
   - key: source
     label: Source
     required: true
     description: Where the traffic starts. Hostname and/or IP address or subnet.
     question: What is the source (server name and IP address or subnet)?
+    label_ar: المصدر
+    question_ar: وش المصدر؟ (اسم السيرفر وعنوان الـ IP أو الشبكة)
   - key: destination
     label: Destination
     required: true
     description: Where the traffic goes. Hostname, URL and/or IP address.
     question: What is the destination (hostname or URL and IP address)?
+    label_ar: الوجهة
+    question_ar: وش الوجهة؟ (اسم السيرفر أو الرابط وعنوان الـ IP)
   - key: port_protocol
     label: Port / protocol
     required: true
     description: Port number(s) and protocol, e.g. TCP 443.
     question: Which port and protocol are needed (for example TCP 443)?
+    label_ar: المنفذ / البروتوكول
+    question_ar: أي منفذ وبروتوكول تحتاج؟ (مثلاً TCP 443)
   - key: duration
     label: Duration
     required: true
     description: Permanent, or temporary with an end date.
     question: Is this rule permanent or temporary? If temporary, until when?
+    label_ar: المدة
+    question_ar: القاعدة دائمة ولا مؤقتة؟ وإذا مؤقتة، لين متى؟
   - key: impact_if_rejected
     label: Impact if rejected
     required: true
     description: What breaks or is delayed for the business if the rule is not opened.
     question: What happens to the business if this rule is not opened?
+    label_ar: الأثر إذا انرفض الطلب
+    question_ar: وش يصير للعمل إذا ما انفتحت القاعدة؟
   - key: data_classification
     label: Data classification
     required: false
     description: Classification of the data crossing the rule (public, internal, confidential, restricted).
     question: What is the classification of the data (public, internal, confidential, restricted)?
+    label_ar: تصنيف البيانات
+    question_ar: وش تصنيف البيانات؟ (عام، داخلي، سري، مقيد)

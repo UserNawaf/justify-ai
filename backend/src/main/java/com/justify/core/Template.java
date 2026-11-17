@@ -5,7 +5,7 @@ import java.util.Objects;
 import java.util.Optional;
 
 /** A request type (firewall rule, access request...) and the fields a good justification must contain. */
-public record Template(String id, String name, String description, List<FieldSpec> fields) {
+public record Template(String id, String name, String description, List<FieldSpec> fields, String nameAr) {
 
     public Template {
         Objects.requireNonNull(id, "id");
@@ -14,9 +14,20 @@ public record Template(String id, String name, String description, List<FieldSpe
             description = "";
         }
         fields = List.copyOf(fields);
+        if (nameAr != null && nameAr.isBlank()) {
+            nameAr = null;
+        }
         if (fields.isEmpty()) {
             throw new IllegalArgumentException("template " + id + " has no fields");
         }
+    }
+
+    public Template(String id, String name, String description, List<FieldSpec> fields) {
+        this(id, name, description, fields, null);
+    }
+
+    public String name(Language lang) {
+        return lang == Language.AR && nameAr != null ? nameAr : name;
     }
 
     public Optional<FieldSpec> field(String key) {

@@ -1,0 +1,48 @@
+# Access request: someone needs a role or permission on a system.
+id: access-request
+name: Access request
+name_ar: طلب صلاحية
+description: Request for a user to get a role or permission on a system or application.
+fields:
+  - key: business_purpose
+    label: Business purpose
+    required: true
+    description: Why the person needs the access, in business terms (task, project, process).
+    question: Why is this access needed? Which task or process requires it?
+    label_ar: الغرض من الطلب
+    question_ar: ليش تحتاج هالصلاحية؟ أي مهمة أو عملية تتطلبها؟
+  - key: user
+    label: User
+    required: true
+    description: Who gets the access. Name and/or employee ID or username.
+    question: Who needs the access (name and employee ID or username)?
+    label_ar: المستخدم
+    question_ar: مين يحتاج الصلاحية؟ (الاسم والرقم الوظيفي أو اسم المستخدم)
+  - key: system
+    label: System
+    required: true
+    description: The system, application, database or share the access is for.
+    question: Which system or application is the access for?
+    label_ar: النظام
+    question_ar: الصلاحية على أي نظام أو تطبيق؟
+  - key: access_level
+    label: Role / access level
+    required: true
+    description: The role, group or permission level, e.g. read-only, editor, admin.
+    question: Which role or access level is needed (for example read-only, editor, admin)?
+    label_ar: الدور / مستوى الصلاحية
+    question_ar: وش الدور أو مستوى الصلاحية المطلوب؟ (مثلاً قراءة فقط، تعديل، مدير)
+  - key: duration
+    label: Duration
+    required: true
+    description: Permanent, or temporary with an end date.
+    question: Is the access permanent or temporary? If temporary, until when?
+    label_ar: المدة
+    question_ar: الصلاحية دائمة ولا مؤقتة؟ وإذا مؤقتة، لين متى؟
+  - key: approver
+    label: Approver
+    required: false
+    description: The manager or system owner who approved the access.
+    question: Who approved this access (manager or system owner)?
+    label_ar: المعتمِد
+    question_ar: مين اعتمد هالصلاحية؟ (المدير أو مالك النظام)

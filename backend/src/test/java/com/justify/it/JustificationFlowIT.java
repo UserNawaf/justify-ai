@@ -14,6 +14,9 @@ import org.springframework.context.annotation.Primary;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.test.context.DynamicPropertyRegistry;
+import org.springframework.test.context.DynamicPropertySource;
+import com.justify.testsupport.WebhookReceiver;
 import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
@@ -38,6 +41,14 @@ class JustificationFlowIT {
             .withDatabaseName("justify")
             .withInitScript("powerbi-role.sql");
 
+    static final WebhookReceiver webhook = new WebhookReceiver(0);
+
+    @DynamicPropertySource
+    static void webhookProps(DynamicPropertyRegistry registry) {
+        registry.add("justify.webhook.url", webhook::url);
+        registry.add("justify.webhook.secret", () -> "it-secret");
+    }
+
     @TestConfiguration
     static class FakeAi {
         @Bean
@@ -60,7 +71,7 @@ class JustificationFlowIT {
 
     @Test
     @SuppressWarnings("unchecked")
-    void vagueTextToCompleteJustification() throws SQLException {
+    void vagueTextToCompleteJustification() throws Exception {
         Map<String, Object> submit = Map.of("templateId", "firewall-rule",
                 "text", "port_protocol: TCP 443\nplease open it to the bank, urgent",
                 "source", "jira", "externalRef", "OPS-42");
@@ -72,6 +83,10 @@ class JustificationFlowIT {
         assertThat(r1.getBody()).containsEntry("status", "NEEDS_INFO").containsEntry("round", 1);
         assertThat(((Map<String, String>) r1.getBody().get("questions")).keySet())
                 .containsExactly("business_purpose", "source", "destination");
+
+        // feedback before the end is refused
+        assertThat(post("/api/v1/justifications/" + id + "/feedback", Map.of("sufficient", true)).getStatusCode())
+                .isEqualTo(HttpStatus.CONFLICT);
 
         // 2. connector retry -> same submission, no duplicate
         ResponseEntity<Map<String, Object>> retry = post("/api/v1/justifications", submit);
@@ -102,7 +117,26 @@ class JustificationFlowIT {
         assertThat(post("/api/v1/justifications/" + id + "/answers",
                 Map.of("answers", Map.of("duration", "Temporary"))).getStatusCode()).isEqualTo(HttpStatus.CONFLICT);
 
-        // 6. stored, and visible in the Power BI views
+        // 6. the webhook received the closed event (delivered asynchronously)
+        long deadline = System.currentTimeMillis() + 10_000;
+        while (webhook.received().stream().noneMatch(w -> w.body().contains(id))
+                && System.currentTimeMillis() < deadline) {
+            Thread.sleep(50);
+        }
+        assertThat(webhook.received()).anySatisfy(w -> {
+            assertThat(w.body()).contains(id).contains("\"externalRef\":\"OPS-42\"").contains("COMPLETE");
+            assertThat(w.header("X-Justify-Signature")).startsWith("sha256=");
+        });
+
+        // 7. engineer feedback, changeable, visible in reporting
+        assertThat(post("/api/v1/justifications/" + id + "/feedback", Map.of("sufficient", false, "comment", "x"))
+                .getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(post("/api/v1/justifications/" + id + "/feedback", Map.of("sufficient", true))
+                .getBody()).containsEntry("sufficient", true);
+        assertThat(jdbc.queryForObject("select sufficient from reporting.v_feedback where submission_id = ?::uuid",
+                Boolean.class, id)).isTrue();
+
+        // 8. stored, and visible in the Power BI views
         Map<String, Object> row = jdbc.queryForMap(
                 "select is_complete, first_pass_complete, round_count, created_date from reporting.v_submissions where id = ?::uuid", id);
         assertThat(row).containsEntry("is_complete", true).containsEntry("first_pass_complete", false)
@@ -152,6 +186,22 @@ class JustificationFlowIT {
     }
 
     @Test
+    @SuppressWarnings("unchecked")
+    void questionsInArabicAndAccessTemplate() {
+        ResponseEntity<Map<String, Object>> r = post("/api/v1/justifications?lang=ar", Map.of(
+                "templateId", "access-request", "text", "user: Nawaf (E1234)\nsystem: SAP HR"));
+        assertThat(r.getStatusCode()).isEqualTo(HttpStatus.CREATED);
+        Map<String, String> q = (Map<String, String>) r.getBody().get("questions");
+        assertThat(q.keySet()).containsExactly("business_purpose", "access_level", "duration");
+        assertThat(q.get("duration")).contains("دائمة");
+
+        String id = (String) r.getBody().get("id");
+        Map<String, Object> en = http.getForObject("/api/v1/justifications/" + id, Map.class);
+        assertThat(((Map<String, String>) en.get("questions")).get("duration")).contains("permanent");
+        assertThat(http.getForObject("/api/v1/templates?lang=ar", String.class)).contains("طلب صلاحية");
+    }
+
+    @Test
     void unknownTemplateIs404() {
         assertThat(http.postForEntity("/api/v1/justifications",
                 Map.of("templateId", "nope", "text", "x"), String.class).getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
@@ -170,6 +220,7 @@ class JustificationFlowIT {
             c.createStatement().executeQuery("select count(*) from reporting.v_submissions").close();
             c.createStatement().executeQuery("select count(*) from reporting.v_missing_fields").close();
             c.createStatement().executeQuery("select count(*) from reporting.v_daily_summary").close();
+            c.createStatement().executeQuery("select count(*) from reporting.v_feedback").close();
             assertThatThrownBy(() -> c.createStatement().executeQuery("select * from public.submission"))
                     .hasMessageContaining("permission denied");
         }

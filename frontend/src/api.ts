@@ -36,10 +36,17 @@ export class ApiError extends Error {
   }
 }
 
+let language = "ar";
+
+/** Questions and labels come back in this language; the standardised text stays English. */
+export function setLanguage(lang: string) {
+  language = lang;
+}
+
 async function call<T>(path: string, init?: RequestInit): Promise<T> {
   const res = await fetch(`/api/v1${path}`, {
     ...init,
-    headers: { "Content-Type": "application/json", ...(init?.headers ?? {}) },
+    headers: { "Content-Type": "application/json", "Accept-Language": language, ...(init?.headers ?? {}) },
   });
   if (!res.ok) {
     let detail = res.statusText;
@@ -61,6 +68,7 @@ export const api = {
       method: "POST",
       body: JSON.stringify({ templateId, text, source: "web" }),
     }),
+  get: (id: string) => call<Justification>(`/justifications/${id}`),
   answer: (id: string, answers: Record<string, string>) =>
     call<Justification>(`/justifications/${id}/answers`, {
       method: "POST",
