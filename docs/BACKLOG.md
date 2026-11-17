@@ -16,7 +16,9 @@ Status: ✅ done in the MVP · ⬜ to do. Each epic below maps to a Jira Epic, e
 - ✅ Groq provider (`AI_PROVIDER=groq`) for larger hosted Llama models
 - ✅ Prompt-evaluation workflow on GitHub Actions
 - ⬜ Add the `GROQ_API_KEY` repository secret so the Groq models are measured too
-- ⬜ Run the evaluation on llama3.1:8b, record baseline numbers in this file
+- ✅ Run the evaluation, record baseline numbers (below)
+- ⬜ Decide the default model: qwen2.5:7b is more accurate, llama3.1:8b slightly faster to read clarity
+- ⬜ Remaining error type: the model infers an impact from a purpose ("so we get alerts" → impact). Add golden cases for it
 - ⬜ Grow the golden set (10 cases today) to 50 cases from real (anonymised) justifications
 - ⬜ Compare 2-3 models (llama3.1:8b, qwen2.5:7b, a larger Llama) on accuracy vs latency
 
@@ -49,3 +51,17 @@ Status: ✅ done in the MVP · ⬜ to do. Each epic below maps to a Jira Epic, e
 - ✅ Isolated React app: submit, answer, copy result, Arabic/English
 - ⬜ History page ("my requests")
 - ⬜ Component tests (Vitest + Testing Library)
+
+## Prompt evaluation results
+
+Golden set: 10 cases (English, Arabic, mixed). Accuracy = per required field, did the model correctly say
+present / missing. Run on the GitHub Actions CPU runner (Ollama), so the seconds are slow on purpose.
+
+| Date | Prompt | Model | Unusable | Field accuracy | Clarity clear / vague | Seconds (10 cases) |
+|---|---|---|---|---|---|---|
+| 2026-11-17 | v1 | llama3.1:8b | 0 | 86.7% | 8.0 / 4.0 | 134 |
+| 2026-11-17 | v1 | qwen2.5:7b | 0 | 90.0% | 8.6 / 2.6 | 185 |
+| 2026-11-17 | v2 (D21: null over guess) | llama3.1:8b | 0 | **95.0%** | 9.0 / 3.2 | 277 |
+| 2026-11-17 | v2 (D21: null over guess) | qwen2.5:7b | 0 | **98.3%** | 8.6 / 3.4 | 255 |
+
+Groq models (llama-3.3-70b-versatile, llama-3.1-8b-instant): not measured yet, add the `GROQ_API_KEY` secret.
