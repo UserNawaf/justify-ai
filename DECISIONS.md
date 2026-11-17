@@ -100,3 +100,25 @@ The first evaluation showed that almost all errors were *invented* values (e.g. 
 An invented value is worse than a missing one: nobody asks about it, so the engineer gets a wrong
 justification. The prompt now says "when in doubt, null" and names the common traps. Numbers before/after are
 in `docs/BACKLOG.md`.
+
+### D22. Questions are localized, the justification is not
+Employees read questions in their language (`label_ar` / `question_ar` in templates, `?lang=` or
+`Accept-Language`). The standardised text stays English: it is the engineer's fixed format, and one format is
+what makes requests comparable and reportable. Stored round questions are English; the API re-localizes from the
+template on read, so switching language mid-request works.
+
+### D23. Webhook: one URL, signed, after commit, best effort
+A generic webhook is the cheapest connector: ServiceNow, Jira Automation and Power Automate can all receive a
+POST. It fires only after the transaction commits (no events for rolled-back data), runs on a virtual thread so
+a slow receiver never delays the employee, signs the body with HMAC-SHA256 (`X-Justify-Signature`, like GitHub)
+and retries 5xx/timeouts with backoff (2s, 10s, 30s). No outbox table yet: a crash during delivery loses that
+event, acceptable for notifications because the state is always readable via `GET /justifications/{id}`.
+
+### D24. Engineer feedback can be changed, last one counts
+`POST /justifications/{id}/feedback` upserts one verdict per submission, only once it is finished. It exists
+to answer "does a high score really mean the engineer could act on it?" (`reporting.v_feedback`).
+
+### D25. A free one-click demo on Render
+`render.yaml` provisions PostgreSQL, the API and the static web app. The demo uses Groq because a free instance
+cannot run a local model. The web app proxies `/api` through a Render rewrite, so the browser stays same-origin
+as in Docker (D12).

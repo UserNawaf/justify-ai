@@ -13,6 +13,7 @@
                          │                         │            ai.OllamaAiClient ─────┼──► Ollama (Llama)
                          │                         ▼                                   │
                          │                     persistence ─────────────────────────── ┼──► PostgreSQL
+                         │  service ──► notify.WebhookNotifier ────────────────────────┼──► WEBHOOK_URL
                          └─────────────────────────────────────────────────────────────┘        │
                                                                                                  ▼
                                                                          reporting.v_* views ──► Power BI
@@ -24,7 +25,8 @@
 |---|---|---|
 | `core` | Business logic: the pipeline, scoring, rendering, templates. **No framework imports.** | nothing else |
 | `core.pipeline` | `EvaluationPipeline`: extract → merge → decide → score → render | `AiClient` interface |
-| `ai` | `OllamaAiClient`, prompt, strict JSON parsing | Ollama HTTP API |
+| `ai` | `OllamaAiClient`, `GroqAiClient` (shared `ChatAiClient`), prompt, strict JSON parsing | Ollama / Groq HTTP API |
+| `notify` | `WebhookNotifier`: signed POST when a submission closes | JDK `HttpClient` |
 | `template` | Loads YAML templates | SnakeYAML |
 | `persistence` | JPA entities + repositories | PostgreSQL |
 | `service` | Orchestration: one submission's lifecycle, transactions | all of the above |
@@ -47,7 +49,9 @@ POST /justifications {templateId, text}
         │                         ▼                 gaps shown)
         │                 NEEDS_INFO + ≤3 questions
         │                         │
-        └── POST /justifications/{id}/answers {answers}  (answers are trusted as-is; earlier values kept)
+        └── POST /justifications/{id}/answers {answers}  (answers are trusted as-is; earlier values kept, no model call: D19)
+
+  COMPLETE / INCOMPLETE ──► after commit: webhook (D23) ──► engineer feedback (D24)
 ```
 
 Each round is saved in `submission_round` (what was missing, what was asked), which powers the analytics.
@@ -59,8 +63,11 @@ Each round is saved in `submission_round` (what was missing, what was asked), wh
 | POST | `/api/v1/justifications` | Submit text. `source` + `externalRef` optional (idempotent per source system). |
 | POST | `/api/v1/justifications/{id}/answers` | Answer the questions: `{"answers": {"port_protocol": "TCP 443"}}` |
 | GET | `/api/v1/justifications/{id}` | Current state |
+| POST | `/api/v1/justifications/{id}/feedback` | Engineer verdict: `{"sufficient": true, "comment": "..."}` (finished submissions only) |
 | GET | `/api/v1/templates`, `/api/v1/templates/{id}` | Available request types and their fields |
 | GET | `/api/v1/stats` | Quick numbers (full analytics: Power BI) |
+
+Questions and template labels follow `?lang=ar|en` or `Accept-Language`; the standardised text is always English (D22).
 
 Interactive docs: `http://localhost:8080/swagger-ui.html`. Errors are `application/problem+json`:
 400 invalid input, 404 unknown template/submission, 409 submission closed or concurrent update,
@@ -84,6 +91,8 @@ created_at, updated_at, completed_at
 version (optimistic lock)
 ```
 
+submission_feedback (V3): submission_id PK/FK, sufficient, comment, created_at, updated_at
+
 Reporting views (read by Power BI): see [POWERBI.md](POWERBI.md).
 
 ## Extension points
@@ -92,7 +101,7 @@ Reporting views (read by Power BI): see [POWERBI.md](POWERBI.md).
 |---|---|
 | Support a new request type | Add a YAML template (no code). See `templates/README.md`. |
 | Use another model or provider | Implement `AiClient`, register it as a bean. |
-| Plug into ServiceNow / Jira / Teams | Call the REST API from that system with `source` + `externalRef`. A connector is just an adapter that maps its events to these 2 calls. See `docs/BACKLOG.md`. |
+| Plug into ServiceNow / Jira / Teams | Call the REST API from that system with `source` + `externalRef`, and receive the finished text on `WEBHOOK_URL` (verify `X-Justify-Signature`). A connector is just an adapter. See `docs/BACKLOG.md`. |
 | Build a new report | Add a view in a new Flyway migration under `reporting`; grant follows automatically. |
 
 ## Frontend

@@ -12,9 +12,11 @@ the model.
 | `JustificationRendererTest` | Fixed format, field order, "Not provided" |
 | `ExtractionParserTest` | Accepts code fences/chatter, rejects malformed replies, drops invented keys |
 | `PromptBuilderTest` | Prompt lists every field and its requirement |
-| `YamlTemplateParserTest` | Template validation; refuses arbitrary YAML types |
+| `YamlTemplateParserTest` | Template validation; refuses arbitrary YAML types; every bundled template fully translated |
 | `ApiKeyFilterTest` | Key check, CORS preflight and non-API paths pass |
-| `JustificationControllerTest` | HTTP contract: status codes, validation, no internal detail leaked on 503 |
+| `JustificationControllerTest` | HTTP contract: status codes, validation, language selection, no internal detail leaked on 503 |
+| `LanguageTest` | `Accept-Language` parsing, Arabic with English fallback |
+| `WebhookNotifierTest` | Payload, HMAC signature (checked against openssl), retries on 5xx, gives up quietly (real local HTTP server) |
 
 The model is replaced by `FakeAiClient`, which reads `"field: value"` lines, so results are exact and repeatable.
 
@@ -22,7 +24,9 @@ The model is replaced by `FakeAiClient`, which reads `"field: value"` lines, so 
 
 Starts PostgreSQL in Docker (Testcontainers), runs the Flyway migrations, and walks the whole flow through
 HTTP: vague text → questions → answers → COMPLETE → duplicate retry returns the same id → 409 on a closed
-submission → the row and its missing fields appear in the Power BI views. Skipped automatically if Docker is
+submission → signed webhook received → engineer feedback → the row, its missing fields and the feedback appear
+in the Power BI views; Arabic questions on the access-request template; model outage stores nothing; the
+`powerbi_reader` login reads the views and is refused on the tables. Skipped automatically if Docker is
 not available (check the CI log says `Skipped: 0` for it).
 
 ## 3. Prompt evaluation: real model (`PromptEvalIT`, manual)
@@ -56,4 +60,6 @@ The prompt evaluation is not in CI (it needs a model and its results vary).
 
 ## Frontend
 
-`npm run build` type-checks (`tsc`) and builds. No UI tests yet; the UI is thin and all logic is in the API.
+`npm test` runs Vitest + Testing Library against a mocked `fetch`: the submit → questions → answer → result flow
+in Arabic (RTL), the friendly 503 message, and switching to English. `npm run build` type-checks and builds.
+Both run in CI.

@@ -1,33 +1,74 @@
 # Justify AI
 
-AI-assisted standardisation of request justifications (firewall rules first).
+[![CI](https://github.com/UserNawaf/justify-ai/actions/workflows/ci.yml/badge.svg)](https://github.com/UserNawaf/justify-ai/actions/workflows/ci.yml)
+[![Prompt evaluation](https://github.com/UserNawaf/justify-ai/actions/workflows/prompt-eval.yml/badge.svg)](https://github.com/UserNawaf/justify-ai/actions/workflows/prompt-eval.yml)
+
+AI-assisted standardisation of IT request justifications (firewall rules and access requests).
 
 Today an employee writes a free-text justification, the engineer handling the ticket can't act on it, and the
 two go back and forth on Teams or email asking "what do you mean?". Justify AI sits in between:
 
-1. the employee writes the justification their own way (Arabic or English);
-2. a local Llama model reads it; the code works out what is missing and asks **at most 3 short questions**;
+1. the employee writes the justification their own way, in Arabic or English;
+2. a Llama model reads it; **the code** works out what is missing and asks **at most 3 short questions**,
+   in the employee's language;
 3. the engineer receives a **fixed-format** justification with a quality score;
 4. every request and every round is stored, so Power BI can show what people forget and whether quality improves.
 
-It is a standalone service with a REST API, so it can be added to any workplace tool (web form, ServiceNow,
-Jira, Teams) through a thin adapter.
+| 1. Write it your way | 2. Answer what's missing | 3. Fixed format for the engineer |
+|---|---|---|
+| ![Submit](docs/images/1-submit-ar.png) | ![Questions](docs/images/2-questions-ar.png) | ![Result](docs/images/3-result-ar.png) |
 
-```
-Request type: Firewall rule request
-Business purpose: Payroll app must call the bank's payment API for monthly salaries
-Source: payroll-app-01 (10.10.5.20)
-Destination: api.bank.example (203.0.113.10)
-Port / protocol: TCP 443
-Duration: Permanent
-Impact if rejected: Salaries cannot be paid on time
-Data classification: Not provided
-```
+<details><summary>English UI</summary>
+
+| | | |
+|---|---|---|
+| ![Submit](docs/images/1-submit-en.png) | ![Questions](docs/images/2-questions-en.png) | ![Result](docs/images/3-result-en.png) |
+
+</details>
+
+It is a standalone service with a REST API, so it can be added to any workplace tool (web form, ServiceNow,
+Jira, Teams) through a thin adapter, and it notifies them through a signed webhook when a justification is ready.
+
+## Design in one line
+
+**The model extracts, the code decides.** The LLM only reads the text into fields and rates clarity. What is
+missing, which questions to ask, the status, the score and the final wording are plain, unit-tested Java
+([D2](DECISIONS.md#d2-the-model-extracts-the-code-decides), [D3](DECISIONS.md#d3-standardised-text-is-rendered-by-code-not-written-by-the-model)).
+Small open models are good at extraction and bad at following rules, so the split plays to their strengths and
+nothing the model invents can reach the engineer's text unchecked.
+
+## Measured, not guessed
+
+A hand-labelled golden set (English, Arabic, mixed) runs against real models on every prompt change
+([prompt-eval workflow](.github/workflows/prompt-eval.yml)). Making the prompt prefer `null` over a guess
+([D21](DECISIONS.md#d21-the-prompt-prefers-null-over-a-guess)) cut invented values sharply:
+
+| Model (local, Ollama) | Prompt v1 | Prompt v2 | Unusable replies |
+|---|---|---|---|
+| llama3.1:8b | 86.7% | **95.0%** | 0 |
+| qwen2.5:7b | 90.0% | **98.3%** | 0 |
+
+Field accuracy = for each required field, did the model correctly say present / missing. Details in
+[docs/BACKLOG.md](docs/BACKLOG.md#prompt-evaluation-results).
+
+## Features
+
+- Free text in Arabic, English or both; questions and labels localized (`Accept-Language` / `?lang=ar`)
+- Request types as YAML templates, no code: firewall rule and access request bundled, more via `TEMPLATES_DIR`
+- Max 3 questions per round, max 3 rounds, then `INCOMPLETE` instead of blocking the employee
+- Quality score: 60% completeness (code) + 40% clarity (model)
+- Idempotent per source system (`source` + `externalRef`), optimistic locking against concurrent answers
+- Signed outbound webhook (HMAC-SHA256) when a justification is finished
+- Engineer feedback ("was this enough?") to validate the score against reality
+- Power BI: `reporting` views behind a read-only login that cannot touch the tables
+- Model choice: local Llama via Ollama (default, data stays on the machine) or Groq (cloud, dummy data only)
+- RFC 9457 errors, OpenAPI / Swagger UI, health probes, optional API key
 
 ## Stack
 
-Java 21 · Spring Boot 3.5 · PostgreSQL 16 (JSONB, Flyway) · Llama via Ollama (runs locally, data stays on the
-machine) or Groq (cloud, optional) · React 19 + Vite (isolated frontend) · Docker Compose · JUnit 5, Mockito, Testcontainers · GitHub Actions
+Java 21 · Spring Boot 3.5 · PostgreSQL 16 (JSONB, Flyway) · Llama via Ollama or Groq · React 19 + Vite +
+TypeScript (isolated frontend, nginx) · Docker Compose · JUnit 5, Mockito, Testcontainers, Vitest ·
+GitHub Actions
 
 ## Run it
 
@@ -44,17 +85,30 @@ docker compose up --build     # first run downloads the model (~5 GB), be patien
 | API + Swagger UI | http://localhost:8080/swagger-ui.html |
 | PostgreSQL (Power BI) | localhost:5432, database `justify`, user `powerbi_reader` |
 
+No GPU or 5 GB to spare? Set `AI_PROVIDER=groq` and `GROQ_API_KEY` in `.env` (dummy data only) and remove the
+`ollama-pull` dependency from the `backend` service.
+
 ### Try the API
 
 ```bash
-curl -s localhost:8080/api/v1/justifications -H 'Content-Type: application/json' \
+curl -s localhost:8080/api/v1/justifications -H 'Content-Type: application/json' -H 'Accept-Language: ar' \
   -d '{"templateId":"firewall-rule","text":"Please open port 443 from the payroll server to the bank, urgent"}'
-# -> status NEEDS_INFO + questions, e.g. "Is this rule permanent or temporary?"
+# -> 201, status NEEDS_INFO + questions in Arabic, e.g. "القاعدة دائمة ولا مؤقتة؟"
 
 curl -s localhost:8080/api/v1/justifications/<id>/answers -H 'Content-Type: application/json' \
   -d '{"answers":{"duration":"Permanent","impact_if_rejected":"Salaries are paid late"}}'
 # -> status COMPLETE + standardizedText + qualityScore
+
+curl -s localhost:8080/api/v1/justifications/<id>/feedback -H 'Content-Type: application/json' \
+  -d '{"sufficient":true}'
+# -> the engineer's verdict, shown in Power BI next to the score
 ```
+
+### Deploy a demo (Render, free tier)
+
+[`render.yaml`](render.yaml) creates PostgreSQL, the API (on Groq) and the web app in one go:
+Render dashboard → **New → Blueprint** → pick this repo → paste a Groq API key when asked. Flyway builds the
+schema on the first start. Free instances sleep when idle, so the first request takes about a minute.
 
 ### Develop without Docker
 
@@ -72,8 +126,9 @@ backend/     Spring Boot service (see docs/ARCHITECTURE.md)
 frontend/    React app, isolated: talks to the API only, own container
 db/init/     one-time database setup (Power BI read-only login)
 templates/   extra request-type templates, loaded at start-up (no code needed)
-docs/        ARCHITECTURE · TESTING · POWERBI · BACKLOG (Jira-ready)
+docs/        ARCHITECTURE · TESTING · POWERBI · BACKLOG (Jira-ready) · images
 DECISIONS.md every decision taken while building, and why
+render.yaml  one-click demo deployment
 ```
 
 ## Configuration
@@ -82,34 +137,31 @@ Environment variables (defaults in `backend/src/main/resources/application.yml`)
 
 | Variable | Default | Purpose |
 |---|---|---|
-| `DB_URL`, `DB_USER`, `DB_PASSWORD` | local `justify` DB | Database |
+| `DB_URL` (or `DB_HOST`, `DB_PORT`, `DB_NAME`), `DB_USER`, `DB_PASSWORD` | local `justify` DB | Database |
 | `AI_PROVIDER` | `ollama` | `ollama` (local) or `groq` (cloud, dummy data only, see D18) |
 | `OLLAMA_URL`, `OLLAMA_MODEL` | `http://localhost:11434`, `llama3.1:8b` | Local model |
 | `GROQ_API_KEY`, `GROQ_MODEL` | empty, `llama-3.3-70b-versatile` | Groq model (only with `AI_PROVIDER=groq`) |
 | `AI_TIMEOUT` | `120s` | Read timeout for one model call |
 | `TEMPLATES_DIR` | empty | Folder with extra `*.yml` templates |
+| `WEBHOOK_URL`, `WEBHOOK_SECRET` | empty (off) | POST a signed event when a submission is finished |
 | `APP_API_KEY` | empty (off) | Shared secret for server-to-server callers (`X-API-Key`) |
 | `CORS_ORIGINS` | `http://localhost:5173` | Only needed if a browser calls the API from another origin |
 | `POWERBI_READER_PASSWORD` | empty | Creates the read-only Power BI login on first start |
+| `PORT` | `8080` | HTTP port |
 
-## Status of this MVP
-
-The source was rebuilt from the design docs (see D20) and is now verified end to end in CI.
+## Status
 
 **Verified on every push (GitHub Actions)**
-- `mvn verify`: 39 unit tests (pipeline, scoring, rendering, model-reply and template parsing, API key filter,
-  HTTP contract) and 6 integration tests on real PostgreSQL 16 via Testcontainers (full flow, idempotent
-  retry, 409 on closed submissions, 503 with nothing stored, reporting views, Power BI login refused on raw tables).
-- Frontend type-checks and builds for production.
+- Backend `mvn verify`: 47 unit tests and 7 integration tests on real PostgreSQL 16 (Testcontainers): full
+  flow in both templates and both languages, idempotent retry, 409 on closed submissions, 503 with nothing
+  stored, webhook delivered and signed, engineer feedback, reporting views, Power BI login refused on raw tables.
+- Frontend: component tests (Vitest + Testing Library) and production build.
+- Prompt evaluation against real local models whenever the prompt or golden set changes.
 
-**Prompt evaluation**: `.github/workflows/prompt-eval.yml` runs the golden set against local models (Ollama on
-the CI runner) whenever the prompt or the golden set changes. Add a `GROQ_API_KEY` repository secret to also
-measure Groq models. Baseline numbers: [docs/BACKLOG.md](docs/BACKLOG.md).
+**Not yet run**: the full `docker compose up` stack and the Render blueprint on a real machine / account.
 
-**Not yet run**: `docker compose up` end to end on a real machine (each image builds in CI-like steps, but the
-compose stack itself has not been started).
+**Before using real company data**: get the security team's approval, especially for storing IP addresses
+and hostnames, and never send real data to Groq without it.
 
-**Before using real company data**: it runs a local model by default, but get the security team's approval
-anyway, especially for storing IP addresses and hostnames. Never send real data to Groq without approval.
-
-Next steps: [docs/BACKLOG.md](docs/BACKLOG.md).
+How it was built: designed and specified first ([DECISIONS.md](DECISIONS.md), [docs/](docs)), then
+implemented with an AI coding agent and verified by the test suites above. Next steps: [docs/BACKLOG.md](docs/BACKLOG.md).

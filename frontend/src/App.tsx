@@ -170,7 +170,7 @@ export default function App() {
             <div className="row">
               <h2>{current.status === "COMPLETE" ? s.complete : s.incomplete}</h2>
               <span className={`score ${current.qualityScore >= 8 ? "good" : current.qualityScore >= 5 ? "ok" : "low"}`}>
-                {s.score}: {current.qualityScore.toFixed(1)} / 10
+                {s.score}: <bdi dir="ltr">{current.qualityScore.toFixed(1)} / 10</bdi>
               </span>
             </div>
             {current.status === "INCOMPLETE" && <p className="muted">{s.incompleteHint}</p>}

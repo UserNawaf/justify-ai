@@ -9,6 +9,7 @@ Status: ✅ done in the MVP · ⬜ to do. Each epic below maps to a Jira Epic, e
 - ✅ Idempotent submit per source system, optimistic locking
 - ✅ Run `mvn verify` in CI: 39 unit + 6 integration tests green
 - ⬜ Start the full `docker compose up` stack on a real machine and click through the web app
+- ⬜ Deploy the Render demo (`render.yaml`) and put the link in the README
 
 ## EPIC 2: AI model ✅ (first version)
 - ✅ Ollama client for Llama with JSON mode, strict parsing, retries
@@ -25,17 +26,19 @@ Status: ✅ done in the MVP · ⬜ to do. Each epic below maps to a Jira Epic, e
 ## EPIC 3: Templates
 - ✅ Firewall rule template
 - ✅ External templates folder, override by id
-- ⬜ Access request template
+- ✅ Access request template
 - ⬜ Change request template
-- ⬜ `GET /templates` shows per-language labels (Arabic/English)
+- ✅ Per-language labels and questions (Arabic/English) in templates and API
 
 ## EPIC 4: Data & Power BI ✅ (first version)
 - ✅ Submissions and rounds stored, reporting views, read-only login
 - ⬜ Build the first dashboard (see docs/POWERBI.md)
-- ⬜ Engineer feedback: "was this justification enough?" (yes/no) stored per submission, to validate the score
+- ✅ Engineer feedback API + `reporting.v_feedback`
+- ⬜ Engineer feedback button in the ticketing tool (ServiceNow / Jira) that calls the API
 
 ## EPIC 5: Connectors
-- ⬜ Generic outbound webhook: notify a URL when a submission becomes COMPLETE
+- ✅ Generic outbound webhook, HMAC-signed, retried
+- ⬜ Outbox table for guaranteed webhook delivery (D23)
 - ⬜ ServiceNow: business rule on request submit → call API with `source=servicenow`, `externalRef=RITM…`; write the standardised text back to the ticket
 - ⬜ Jira: Automation rule on issue created → call API; comment with questions / standardised text
 - ⬜ Teams bot: conversation that asks the questions in chat
@@ -50,7 +53,7 @@ Status: ✅ done in the MVP · ⬜ to do. Each epic below maps to a Jira Epic, e
 ## EPIC 7: Frontend
 - ✅ Isolated React app: submit, answer, copy result, Arabic/English
 - ⬜ History page ("my requests")
-- ⬜ Component tests (Vitest + Testing Library)
+- ✅ Component tests (Vitest + Testing Library)
 
 ## Prompt evaluation results
 
