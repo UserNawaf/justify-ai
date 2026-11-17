@@ -1,0 +1,120 @@
+[
+  {
+    "id": "en-complete-payroll",
+    "lang": "en",
+    "clear": true,
+    "text": "Our payroll application payroll-app-01 (10.10.5.20) has to call the bank's payment API at api.bank.example (203.0.113.10) over TCP 443 to send monthly salaries. The rule should be permanent. If it is not opened, salaries cannot be paid on time. Data is confidential.",
+    "present": [
+      "business_purpose",
+      "source",
+      "destination",
+      "port_protocol",
+      "duration",
+      "impact_if_rejected"
+    ]
+  },
+  {
+    "id": "en-vague-urgent",
+    "lang": "en",
+    "clear": false,
+    "text": "Please open port 443 from the payroll server to the bank, urgent",
+    "present": [
+      "source",
+      "destination",
+      "port_protocol"
+    ]
+  },
+  {
+    "id": "en-vague-access",
+    "lang": "en",
+    "clear": false,
+    "text": "Need access asap, manager approved.",
+    "present": []
+  },
+  {
+    "id": "en-temporary-vendor",
+    "lang": "en",
+    "clear": true,
+    "text": "Vendor support needs SSH (TCP 22) from their jump host 198.51.100.7 to our ERP server erp-db-02 (10.20.3.14) until 31 December 2026 to apply the year-end patch. Without it the patch slips and finance closing is delayed.",
+    "present": [
+      "business_purpose",
+      "source",
+      "destination",
+      "port_protocol",
+      "duration",
+      "impact_if_rejected"
+    ]
+  },
+  {
+    "id": "en-partial-no-impact",
+    "lang": "en",
+    "clear": true,
+    "text": "Monitoring server mon-01 (10.0.8.2) must poll the core switches 10.0.0.1-10.0.0.4 via SNMP UDP 161 permanently, so we get network health alerts.",
+    "present": [
+      "business_purpose",
+      "source",
+      "destination",
+      "port_protocol",
+      "duration"
+    ]
+  },
+  {
+    "id": "ar-complete-hr",
+    "lang": "ar",
+    "clear": true,
+    "text": "نحتاج فتح اتصال من سيرفر الموارد البشرية hr-app-03 (10.30.1.8) إلى خدمة التأمينات gosi-api.example (203.0.113.55) على المنفذ TCP 443 بشكل دائم، عشان نرفع بيانات الموظفين الشهرية. إذا ما انفتح بتتأخر الرواتب وندفع غرامات.",
+    "present": [
+      "business_purpose",
+      "source",
+      "destination",
+      "port_protocol",
+      "duration",
+      "impact_if_rejected"
+    ]
+  },
+  {
+    "id": "ar-vague",
+    "lang": "ar",
+    "clear": false,
+    "text": "ابي تفتحون لي البورت ضروري الله يعافيكم",
+    "present": []
+  },
+  {
+    "id": "ar-partial",
+    "lang": "ar",
+    "clear": false,
+    "text": "افتحوا 1433 من سيرفر التقارير لقاعدة البيانات مؤقت لمدة أسبوع",
+    "present": [
+      "source",
+      "destination",
+      "port_protocol",
+      "duration"
+    ]
+  },
+  {
+    "id": "mixed-complete",
+    "lang": "mixed",
+    "clear": true,
+    "text": "Request: allow bi-gateway-01 (10.40.2.9) to connect to sql-dwh-01 (10.40.5.20) on TCP 1433, permanent. السبب: Power BI refresh اليومي للتقارير المالية. If rejected the finance dashboards stop updating.",
+    "present": [
+      "business_purpose",
+      "source",
+      "destination",
+      "port_protocol",
+      "duration",
+      "impact_if_rejected"
+    ]
+  },
+  {
+    "id": "en-no-port",
+    "lang": "en",
+    "clear": false,
+    "text": "The new CRM (crm-web-01) needs to reach the email gateway for sending invoices to customers, otherwise invoices are not sent.",
+    "present": [
+      "business_purpose",
+      "source",
+      "destination",
+      "impact_if_rejected"
+    ]
+  }
+]

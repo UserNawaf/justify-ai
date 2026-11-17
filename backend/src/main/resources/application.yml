@@ -1,0 +1,62 @@
+spring:
+  application:
+    name: justify-ai
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/justify}
+    username: ${DB_USER:justify}
+    password: ${DB_PASSWORD:justify}
+    hikari:
+      maximum-pool-size: 10
+  jpa:
+    hibernate:
+      ddl-auto: none        # Flyway owns the schema (D9)
+    open-in-view: false
+    properties:
+      hibernate.jdbc.time_zone: UTC
+  flyway:
+    enabled: true
+  mvc:
+    problemdetails:
+      enabled: true
+  jackson:
+    default-property-inclusion: non_null
+
+server:
+  port: 8080
+  error:
+    include-message: never
+    include-stacktrace: never
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      probes:
+        enabled: true
+
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
+
+justify:
+  templates-dir: ${TEMPLATES_DIR:}
+  pipeline:
+    max-questions: 3
+    max-rounds: 3
+  ai:
+    provider: ${AI_PROVIDER:ollama}       # ollama | groq
+    timeout: ${AI_TIMEOUT:120s}
+    max-retries: 2
+    ollama:
+      url: ${OLLAMA_URL:http://localhost:11434}
+      model: ${OLLAMA_MODEL:llama3.1:8b}
+    groq:
+      url: ${GROQ_URL:https://api.groq.com/openai/v1}
+      api-key: ${GROQ_API_KEY:}
+      model: ${GROQ_MODEL:llama-3.3-70b-versatile}
+  security:
+    api-key: ${APP_API_KEY:}
+    cors-origins: ${CORS_ORIGINS:http://localhost:5173}

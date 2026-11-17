@@ -1,0 +1,72 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: justify
+      POSTGRES_USER: ${DB_USER:-justify}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?set DB_PASSWORD in .env}
+      POWERBI_READER_PASSWORD: ${POWERBI_READER_PASSWORD:-}
+    ports:
+      - "5432:5432"     # Power BI connects here
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./db/init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d justify"]
+      interval: 5s
+      retries: 20
+
+  ollama:
+    image: ollama/ollama:latest
+    volumes:
+      - ollama:/root/.ollama
+    healthcheck:
+      test: ["CMD", "ollama", "list"]
+      interval: 10s
+      retries: 30
+
+  ollama-pull:           # downloads the model once (~5 GB), then exits
+    image: ollama/ollama:latest
+    depends_on:
+      ollama:
+        condition: service_healthy
+    environment:
+      OLLAMA_HOST: http://ollama:11434
+    entrypoint: ["ollama", "pull", "${OLLAMA_MODEL:-llama3.1:8b}"]
+    restart: "no"
+
+  backend:
+    build: ./backend
+    depends_on:
+      postgres:
+        condition: service_healthy
+      ollama-pull:
+        condition: service_completed_successfully
+    environment:
+      DB_URL: jdbc:postgresql://postgres:5432/justify
+      DB_USER: ${DB_USER:-justify}
+      DB_PASSWORD: ${DB_PASSWORD}
+      AI_PROVIDER: ${AI_PROVIDER:-ollama}
+      OLLAMA_URL: http://ollama:11434
+      OLLAMA_MODEL: ${OLLAMA_MODEL:-llama3.1:8b}
+      GROQ_API_KEY: ${GROQ_API_KEY:-}
+      GROQ_MODEL: ${GROQ_MODEL:-llama-3.3-70b-versatile}
+      APP_API_KEY: ${APP_API_KEY:-}
+      TEMPLATES_DIR: /templates
+    volumes:
+      - ./templates:/templates:ro
+    ports:
+      - "8080:8080"
+
+  frontend:
+    build: ./frontend
+    depends_on:
+      - backend
+    environment:
+      APP_API_KEY: ${APP_API_KEY:-}
+    ports:
+      - "8081:80"
+
+volumes:
+  pgdata:
+  ollama:
