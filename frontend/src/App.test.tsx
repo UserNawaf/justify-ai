@@ -33,6 +33,7 @@ function respond(body: unknown, status = 200) {
 beforeEach(() => {
   calls = [];
   localStorage.clear();
+  window.location.hash = "#/check";
   vi.stubGlobal(
     "fetch",
     vi.fn((url: string, init?: RequestInit) => {
@@ -47,14 +48,14 @@ beforeEach(() => {
 
 afterEach(() => vi.unstubAllGlobals());
 
-test("submit, answer the question, get the fixed-format result", async () => {
+test("checker: submit, answer the question, get the fixed-format result", async () => {
   const user = userEvent.setup();
   render(<App />);
 
   expect(await screen.findByRole("option", { name: "طلب فتح قاعدة جدار ناري" })).toBeInTheDocument();
   expect(document.documentElement.dir).toBe("rtl");
 
-  await user.type(screen.getByRole("textbox"), "افتحوا 443 من سيرفر الرواتب للبنك");
+  await user.type(await screen.findByRole("textbox"), "افتحوا 443 من سيرفر الرواتب للبنك");
   await user.click(screen.getByRole("button", { name: "تحقق من المبرر" }));
 
   expect(await screen.findByText("القاعدة دائمة ولا مؤقتة؟")).toBeInTheDocument();
@@ -83,7 +84,7 @@ test("model outage shows a friendly message", async () => {
   const user = userEvent.setup();
   render(<App />);
 
-  await user.type(screen.getByRole("textbox"), "test");
+  await user.type(await screen.findByRole("textbox"), "test");
   await user.click(screen.getByRole("button", { name: "تحقق من المبرر" }));
 
   expect(await screen.findByText("الموديل غير متاح الحين، جرب بعد دقيقة.")).toBeInTheDocument();

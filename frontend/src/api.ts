@@ -75,3 +75,116 @@ export const api = {
       body: JSON.stringify({ answers }),
     }),
 };
+
+// ---- Firewall request portal ----
+
+export type RequestStatus = "AWAITING_INFO" | "PENDING_REVIEW" | "APPROVED" | "REJECTED";
+
+export interface FirewallForm {
+  requesterName: string;
+  employeeId: string;
+  department: string;
+  email: string;
+  sourceHostname: string;
+  sourceIp: string;
+  destinationHost: string;
+  destinationIp: string;
+  protocol: "TCP" | "UDP";
+  ports: string;
+  durationType: "PERMANENT" | "TEMPORARY";
+  endDate: string;
+  justification: string;
+}
+
+export interface FirewallRequest extends Omit<FirewallForm, "justification" | "email" | "destinationIp" | "endDate"> {
+  id: string;
+  ticketNo: string;
+  status: RequestStatus;
+  email?: string;
+  destinationIp?: string;
+  endDate?: string;
+  justification: {
+    id: string;
+    status: Status;
+    round: number;
+    maxRounds: number;
+    questions?: Record<string, string>;
+    missingFields?: string[];
+    standardizedText?: string;
+    qualityScore: number;
+    originalText?: string;
+  };
+  decidedBy?: string;
+  decisionNote?: string;
+  decidedAt?: string;
+  createdAt: string;
+}
+
+export interface RequestSummary {
+  id: string;
+  ticketNo: string;
+  status: RequestStatus;
+  requesterName: string;
+  department: string;
+  source: string;
+  destination: string;
+  service: string;
+  qualityScore?: number;
+  createdAt: string;
+}
+
+export interface PageView<T> {
+  items: T[];
+  page: number;
+  size: number;
+  total: number;
+  totalPages: number;
+}
+
+export interface FieldError {
+  field: string;
+  message: string;
+}
+
+export class FormError extends ApiError {
+  constructor(public errors: FieldError[]) {
+    super(400, "form");
+  }
+}
+
+async function callForm<T>(path: string, body: unknown): Promise<T> {
+  const res = await fetch(`/api/v1${path}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", "Accept-Language": language },
+    body: JSON.stringify(body),
+  });
+  if (res.status === 400) {
+    const problem = await res.json().catch(() => ({}));
+    if (Array.isArray(problem.errors)) throw new FormError(problem.errors);
+    throw new ApiError(400, problem.detail ?? "Invalid input");
+  }
+  if (!res.ok) {
+    const problem = await res.json().catch(() => ({}));
+    throw new ApiError(res.status, problem.detail ?? res.statusText);
+  }
+  return res.json() as Promise<T>;
+}
+
+export const portal = {
+  create: (form: FirewallForm) => {
+    const body: Record<string, unknown> = { ...form };
+    for (const k of ["email", "destinationIp", "endDate"]) if (!body[k]) delete body[k];
+    if (form.durationType === "PERMANENT") delete body.endDate;
+    return callForm<FirewallRequest>("/firewall-requests", body);
+  },
+  get: (id: string) => call<FirewallRequest>(`/firewall-requests/${id}`),
+  list: (params: { status?: string; q?: string; employeeId?: string; page?: number }) => {
+    const qs = new URLSearchParams();
+    Object.entries(params).forEach(([k, v]) => v !== undefined && v !== "" && qs.set(k, String(v)));
+    return call<PageView<RequestSummary>>(`/firewall-requests?${qs}`);
+  },
+  answer: (id: string, answers: Record<string, string>) =>
+    call<FirewallRequest>(`/firewall-requests/${id}/answers`, { method: "POST", body: JSON.stringify({ answers }) }),
+  decide: (id: string, decision: "APPROVED" | "REJECTED", engineer: string, note: string) =>
+    callForm<FirewallRequest>(`/firewall-requests/${id}/decision`, { decision, engineer, note: note || undefined }),
+};
