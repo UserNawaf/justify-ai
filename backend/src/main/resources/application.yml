@@ -2,7 +2,7 @@ spring:
   application:
     name: justify-ai
   datasource:
-    url: ${DB_URL:jdbc:postgresql://localhost:5432/justify}
+    url: ${DB_URL:jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:justify}}
     username: ${DB_USER:justify}
     password: ${DB_PASSWORD:justify}
     hikari:
@@ -22,7 +22,7 @@ spring:
     default-property-inclusion: non_null
 
 server:
-  port: 8080
+  port: ${PORT:8080}
   error:
     include-message: never
     include-stacktrace: never
