@@ -27,11 +27,25 @@ public class FirewallRequestEntity {
     @Column(nullable = false)
     private String department;
     private String email;
-    @Column(name = "source_hostname", nullable = false)
+    @Enumerated(EnumType.STRING)
+    @Column(name = "request_type", nullable = false)
+    private FirewallForm.RequestType requestType;
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private FirewallForm.Priority priority;
+    @Column(name = "application_name", nullable = false)
+    private String applicationName;
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private FirewallForm.Environment environment;
+    @Column(name = "start_date", nullable = false)
+    private LocalDate startDate;
+    private String notes;
+    @Column(name = "source_hostname")
     private String sourceHostname;
     @Column(name = "source_ip", nullable = false)
     private String sourceIp;
-    @Column(name = "destination_host", nullable = false)
+    @Column(name = "destination_host")
     private String destinationHost;
     @Column(name = "destination_ip")
     private String destinationIp;
@@ -74,10 +88,16 @@ public class FirewallRequestEntity {
         this.employeeId = f.employeeId().strip();
         this.department = f.department().strip();
         this.email = blankToNull(f.email());
-        this.sourceHostname = f.sourceHostname().strip();
+        this.requestType = f.requestType();
+        this.priority = f.priority();
+        this.applicationName = f.applicationName().strip();
+        this.environment = f.environment();
+        this.startDate = f.startDate();
+        this.notes = blankToNull(f.notes());
+        this.sourceHostname = blankToNull(f.sourceHostname());
         this.sourceIp = f.sourceIp().strip();
-        this.destinationHost = f.destinationHost().strip();
-        this.destinationIp = blankToNull(f.destinationIp());
+        this.destinationHost = blankToNull(f.destinationHost());
+        this.destinationIp = f.destinationIp().strip();
         this.protocol = f.protocol();
         this.ports = ports;
         this.durationType = f.durationType();
@@ -111,6 +131,12 @@ public class FirewallRequestEntity {
     public String getEmployeeId() { return employeeId; }
     public String getDepartment() { return department; }
     public String getEmail() { return email; }
+    public FirewallForm.RequestType getRequestType() { return requestType; }
+    public FirewallForm.Priority getPriority() { return priority; }
+    public String getApplicationName() { return applicationName; }
+    public FirewallForm.Environment getEnvironment() { return environment; }
+    public LocalDate getStartDate() { return startDate; }
+    public String getNotes() { return notes; }
     public String getSourceHostname() { return sourceHostname; }
     public String getSourceIp() { return sourceIp; }
     public String getDestinationHost() { return destinationHost; }

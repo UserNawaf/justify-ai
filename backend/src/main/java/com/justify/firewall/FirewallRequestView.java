@@ -17,6 +17,10 @@ public record FirewallRequestView(
         String employeeId,
         String department,
         String email,
+        FirewallForm.RequestType requestType,
+        FirewallForm.Priority priority,
+        String applicationName,
+        FirewallForm.Environment environment,
         String sourceHostname,
         String sourceIp,
         String destinationHost,
@@ -24,7 +28,9 @@ public record FirewallRequestView(
         FirewallForm.Protocol protocol,
         String ports,
         FirewallForm.DurationType durationType,
+        LocalDate startDate,
         LocalDate endDate,
+        String notes,
         Justification justification,
         String decidedBy,
         String decisionNote,
@@ -41,7 +47,8 @@ public record FirewallRequestView(
 
     /** One row of the requests table. */
     public record Summary(UUID id, String ticketNo, RequestStatus status, String requesterName, String department,
-                          String source, String destination, String service, Double qualityScore,
-                          Instant createdAt) {
+                          String applicationName, FirewallForm.Environment environment,
+                          FirewallForm.Priority priority, String source, String destination, String service,
+                          Double qualityScore, Instant createdAt) {
     }
 }

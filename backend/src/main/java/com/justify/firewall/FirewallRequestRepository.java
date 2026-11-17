@@ -26,8 +26,9 @@ public interface FirewallRequestRepository extends JpaRepository<FirewallRequest
               and (:employeeId is null or f.employeeId = :employeeId)
               and (:q is null
                    or lower(f.ticketNo) like :q or lower(f.requesterName) like :q or lower(f.employeeId) like :q
-                   or lower(f.sourceHostname) like :q or lower(f.sourceIp) like :q
-                   or lower(f.destinationHost) like :q or lower(coalesce(f.destinationIp, '')) like :q)
+                   or lower(f.applicationName) like :q or lower(coalesce(f.sourceHostname, '')) like :q
+                   or lower(f.sourceIp) like :q or lower(coalesce(f.destinationHost, '')) like :q
+                   or lower(f.destinationIp) like :q)
             order by f.createdAt desc
             """,
             countQuery = """
@@ -36,8 +37,9 @@ public interface FirewallRequestRepository extends JpaRepository<FirewallRequest
               and (:employeeId is null or f.employeeId = :employeeId)
               and (:q is null
                    or lower(f.ticketNo) like :q or lower(f.requesterName) like :q or lower(f.employeeId) like :q
-                   or lower(f.sourceHostname) like :q or lower(f.sourceIp) like :q
-                   or lower(f.destinationHost) like :q or lower(coalesce(f.destinationIp, '')) like :q)
+                   or lower(f.applicationName) like :q or lower(coalesce(f.sourceHostname, '')) like :q
+                   or lower(f.sourceIp) like :q or lower(coalesce(f.destinationHost, '')) like :q
+                   or lower(f.destinationIp) like :q)
             """)
     Page<Object[]> search(@Param("status") RequestStatus status, @Param("employeeId") String employeeId,
                                        @Param("q") String q, Pageable pageable);

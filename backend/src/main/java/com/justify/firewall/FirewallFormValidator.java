@@ -24,36 +24,49 @@ public final class FirewallFormValidator {
 
     public List<Problem> validate(FirewallForm f, LocalDate today) {
         List<Problem> problems = new ArrayList<>();
-        if (!isHostname(f.sourceHostname())) {
-            problems.add(new Problem("sourceHostname", "must be a hostname like payroll-app-01"));
-        }
         if (!isIpOrCidr(f.sourceIp())) {
-            problems.add(new Problem("sourceIp", "must be an IPv4 address or subnet, e.g. 10.10.5.20 or 10.10.5.0/24"));
+            problems.add(new Problem("sourceIp", "must be an IPv4 address or subnet, e.g. 10.20.30.40 or 10.20.30.0/24"));
         } else if (f.sourceIp().strip().endsWith("/0")) {
             problems.add(new Problem("sourceIp", "0.0.0.0/0 (any) is not allowed as a source"));
         }
-        String dest = stripUrl(f.destinationHost());
-        if (!isHostname(dest) && !isIpOrCidr(dest)) {
-            problems.add(new Problem("destinationHost", "must be a hostname, URL or IP address"));
+        if (present(f.sourceHostname()) && !isHostname(f.sourceHostname())) {
+            problems.add(new Problem("sourceHostname", "must be a hostname like payroll-app-01"));
         }
-        if (f.destinationIp() != null && !f.destinationIp().isBlank() && !isIpOrCidr(f.destinationIp())) {
-            problems.add(new Problem("destinationIp", "must be an IPv4 address or subnet"));
+        if (!isIpOrCidr(f.destinationIp())) {
+            problems.add(new Problem("destinationIp", "must be an IPv4 address or subnet, e.g. 172.16.5.10"));
+        } else if (f.destinationIp().strip().endsWith("/0")) {
+            problems.add(new Problem("destinationIp", "0.0.0.0/0 (any) is not allowed as a destination"));
+        }
+        if (present(f.destinationHost())) {
+            String dest = stripUrl(f.destinationHost());
+            if (!isHostname(dest) && !isIpOrCidr(dest)) {
+                problems.add(new Problem("destinationHost", "must be a hostname or URL"));
+            }
         }
         String portProblem = portProblem(f.ports());
         if (portProblem != null) {
             problems.add(new Problem("ports", portProblem));
         }
+        LocalDate start = f.startDate();
+        if (start != null && start.isBefore(today)) {
+            problems.add(new Problem("startDate", "cannot be in the past"));
+        }
         if (f.durationType() == FirewallForm.DurationType.TEMPORARY) {
+            LocalDate from = start == null || start.isBefore(today) ? today : start;
             if (f.endDate() == null) {
-                problems.add(new Problem("endDate", "is required for a temporary rule"));
-            } else if (!f.endDate().isAfter(today)) {
-                problems.add(new Problem("endDate", "must be in the future"));
-            } else if (f.endDate().isAfter(today.plusDays(MAX_TEMPORARY_DAYS))) {
-                problems.add(new Problem("endDate", "a temporary rule can last at most " + MAX_TEMPORARY_DAYS
-                        + " days; request a permanent rule instead"));
+                problems.add(new Problem("endDate", "is required for temporary access"));
+            } else if (!f.endDate().isAfter(from)) {
+                problems.add(new Problem("endDate", "must be after the start date"));
+            } else if (f.endDate().isAfter(from.plusDays(MAX_TEMPORARY_DAYS))) {
+                problems.add(new Problem("endDate", "temporary access can last at most " + MAX_TEMPORARY_DAYS
+                        + " days; request permanent access instead"));
             }
         }
         return problems;
+    }
+
+    private static boolean present(String s) {
+        return s != null && !s.isBlank();
     }
 
     static boolean isHostname(String s) {

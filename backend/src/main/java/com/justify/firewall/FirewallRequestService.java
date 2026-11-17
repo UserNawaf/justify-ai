@@ -121,9 +121,9 @@ public class FirewallRequestService {
                     FirewallRequestEntity r = (FirewallRequestEntity) row[0];
                     java.math.BigDecimal score = (java.math.BigDecimal) row[1];
                     return new FirewallRequestView.Summary(r.getId(), r.getTicketNo(), r.getStatus(),
-                            r.getRequesterName(), r.getDepartment(),
-                            r.getSourceHostname() + " (" + r.getSourceIp() + ")",
-                            r.getDestinationHost() + (r.getDestinationIp() == null ? "" : " (" + r.getDestinationIp() + ")"),
+                            r.getRequesterName(), r.getDepartment(), r.getApplicationName(), r.getEnvironment(),
+                            r.getPriority(), hostAndIp(r.getSourceHostname(), r.getSourceIp()),
+                            hostAndIp(r.getDestinationHost(), r.getDestinationIp()),
                             r.getProtocol() + " " + r.getPorts(),
                             score == null ? null : score.doubleValue(), r.getCreatedAt());
                 }));
@@ -132,13 +132,22 @@ public class FirewallRequestService {
     /** Form values become confirmed justification fields, worded like the template expects. */
     static Map<String, String> knownFields(FirewallForm f, String ports) {
         Map<String, String> known = new LinkedHashMap<>();
-        known.put("source", f.sourceHostname().strip() + " (" + f.sourceIp().strip() + ")");
-        known.put("destination", f.destinationHost().strip()
-                + (f.destinationIp() == null || f.destinationIp().isBlank() ? "" : " (" + f.destinationIp().strip() + ")"));
+        known.put("source", hostAndIp(f.sourceHostname(), f.sourceIp()));
+        known.put("destination", hostAndIp(f.destinationHost(), f.destinationIp()));
         known.put("port_protocol", f.protocol() + " " + ports);
         known.put("duration", f.durationType() == FirewallForm.DurationType.PERMANENT
-                ? "Permanent" : "Temporary until " + f.endDate());
+                ? "Permanent, from " + f.startDate()
+                : "Temporary, " + f.startDate() + " to " + f.endDate());
         return known;
+    }
+
+    /** "payroll-app-01 (10.10.5.20)", or just the IP when no hostname was given. */
+    static String hostAndIp(String host, String ip) {
+        String i = ip == null ? "" : ip.strip();
+        if (host == null || host.isBlank()) {
+            return i;
+        }
+        return i.isEmpty() ? host.strip() : host.strip() + " (" + i + ")";
     }
 
     private FirewallRequestEntity find(UUID id) {
@@ -151,9 +160,10 @@ public class FirewallRequestService {
                 j.questions().isEmpty() ? null : j.questions(), j.missingFields(), j.standardizedText(),
                 j.qualityScore(), j.rawText());
         return new FirewallRequestView(r.getId(), r.getTicketNo(), r.getStatus(), r.getRequesterName(),
-                r.getEmployeeId(), r.getDepartment(), r.getEmail(), r.getSourceHostname(), r.getSourceIp(),
+                r.getEmployeeId(), r.getDepartment(), r.getEmail(), r.getRequestType(), r.getPriority(),
+                r.getApplicationName(), r.getEnvironment(), r.getSourceHostname(), r.getSourceIp(),
                 r.getDestinationHost(), r.getDestinationIp(), r.getProtocol(), r.getPorts(), r.getDurationType(),
-                r.getEndDate(), justification, r.getDecidedBy(), r.getDecisionNote(), r.getDecidedAt(),
+                r.getStartDate(), r.getEndDate(), r.getNotes(), justification, r.getDecidedBy(), r.getDecisionNote(), r.getDecidedAt(),
                 r.getCreatedAt(), r.getUpdatedAt());
     }
 }

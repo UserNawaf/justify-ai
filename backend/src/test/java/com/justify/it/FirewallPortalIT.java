@@ -64,6 +64,11 @@ class FirewallPortalIT {
         f.put("protocol", "TCP");
         f.put("ports", "443,8443");
         f.put("durationType", "PERMANENT");
+        f.put("requestType", "NEW_ACCESS");
+        f.put("priority", "HIGH");
+        f.put("applicationName", "Payroll System");
+        f.put("environment", "PRODUCTION");
+        f.put("startDate", LocalDate.now().toString());
         f.put("justification", justification);
         return f;
     }
@@ -80,7 +85,8 @@ class FirewallPortalIT {
         Map<String, Object> r = created.getBody();
         String id = (String) r.get("id");
         assertThat((String) r.get("ticketNo")).matches("FW-\\d{4}-\\d{5}");
-        assertThat(r).containsEntry("status", "AWAITING_INFO").containsEntry("ports", "443, 8443");
+        assertThat(r).containsEntry("status", "AWAITING_INFO").containsEntry("ports", "443, 8443")
+                .containsEntry("applicationName", "Payroll System");
         Map<String, Object> j = (Map<String, Object>) r.get("justification");
         assertThat(((Map<String, String>) j.get("questions")).keySet())
                 .containsExactly("business_purpose", "impact_if_rejected");
@@ -117,11 +123,13 @@ class FirewallPortalIT {
                 .containsEntry("id", id);
         Map<String, Object> list = http.getForObject("/api/v1/firewall-requests?status=APPROVED&q=payroll", Map.class);
         assertThat((List<Map<String, Object>>) list.get("items")).anySatisfy(item -> {
-            assertThat(item).containsEntry("ticketNo", ticket).containsEntry("service", "TCP 443, 8443");
+            assertThat(item).containsEntry("ticketNo", ticket).containsEntry("service", "TCP 443, 8443")
+                    .containsEntry("applicationName", "Payroll System").containsEntry("environment", "PRODUCTION");
             assertThat(item.get("qualityScore")).isNotNull();
         });
-        assertThat(jdbc.queryForObject("select status from reporting.v_firewall_requests where ticket_no = ?",
-                String.class, ticket)).isEqualTo("APPROVED");
+        assertThat(jdbc.queryForMap("select status, environment, priority from reporting.v_firewall_requests where ticket_no = ?",
+                ticket)).containsEntry("status", "APPROVED").containsEntry("environment", "PRODUCTION")
+                .containsEntry("priority", "HIGH");
     }
 
     @Test
@@ -147,6 +155,7 @@ class FirewallPortalIT {
         Map<String, Object> bad = form("because");
         bad.put("sourceIp", "10.10.5.300");
         bad.put("ports", "http");
+        bad.remove("sourceHostname");
         bad.put("durationType", "TEMPORARY");
         bad.put("requesterName", "");
 
