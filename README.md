@@ -158,7 +158,7 @@ cd frontend && npm install && npm run dev      # http://localhost:5173, proxies 
 ## Repository
 
 ```
-backend/     Spring Boot service (see docs/ARCHITECTURE.md)
+backend/     Spring Boot service (see docs/ARCHITECTURE.md; use cases and diagrams in docs/DESIGN.md)
 frontend/    React app, isolated: talks to the API only, own container
 db/init/     one-time database setup (Power BI read-only login)
 templates/   extra request-type templates, loaded at start-up (no code needed)

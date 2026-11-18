@@ -6,7 +6,7 @@ autonomy: decide, fix and push without asking, unless something is irreversible 
 
 ## Where things are
 
-- Spec and rationale: `README.md`, `DECISIONS.md` (D1-D29), `docs/ARCHITECTURE.md`, `docs/TESTING.md`,
+- Spec and rationale: `README.md`, `DECISIONS.md` (D1-D29), `docs/ARCHITECTURE.md`, `docs/DESIGN.md` (use cases, diagrams), `docs/TESTING.md`,
   `docs/POWERBI.md`, `docs/BACKLOG.md` (what is left, prompt-eval results).
 - Backend: `backend/` (Java 21, Spring Boot 3.5, Maven). Packages `core` (no framework imports),
   `core.pipeline`, `ai`, `template`, `persistence`, `service`, `notify`, `firewall` (request portal), `api`, `config`.
