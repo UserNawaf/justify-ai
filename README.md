@@ -77,6 +77,75 @@ A hand-labelled golden set (English, Arabic, mixed) runs against real models on 
 Field accuracy = for each required field, did the model correctly say present / missing. Details in
 [docs/BACKLOG.md](docs/BACKLOG.md#prompt-evaluation-results).
 
+## How it works
+
+```mermaid
+flowchart TB
+    subgraph Client
+        UI[React 19 + Vite + TS<br/>AR/EN, RTL]
+    end
+    subgraph Backend[Spring Boot 3.5, Java 21]
+        API[api: controllers, problem+json]
+        FW[firewall: form, validator, status]
+        SVC[service: JustificationService]
+        CORE[core + core.pipeline<br/>no framework imports]
+        TPL[template: YAML templates]
+        AI[ai: PromptBuilder, parser, clients]
+        NOTIFY[notify: HMAC webhook]
+    end
+    DB[(PostgreSQL 16<br/>JSONB, Flyway)]
+    OLL[Ollama<br/>Llama / Qwen]
+    GRQ[Groq cloud<br/>dummy data only]
+    PBI[Power BI]
+    EXT[External system]
+
+    UI -->|/api/v1| API
+    API --> FW --> SVC
+    API --> SVC
+    SVC --> CORE
+    CORE --> TPL
+    SVC --> AI
+    AI --> OLL
+    AI -.-> GRQ
+    SVC --> DB
+    FW --> DB
+    SVC --> NOTIFY --> EXT
+    PBI -->|reporting.v_*| DB
+```
+
+One request, end to end. The model call runs outside the database transaction (D15), so a slow model never holds a connection.
+
+```mermaid
+sequenceDiagram
+    actor R as Requester
+    participant UI as React UI
+    participant API as API
+    participant V as Form validator
+    participant P as Pipeline (code)
+    participant M as Model
+    participant DB as PostgreSQL
+
+    R->>UI: Fill form + justification
+    UI->>API: POST /firewall-requests
+    API->>V: Validate IPs, ports, dates
+    V-->>API: OK
+    API->>P: evaluateText(template, text, knownFields)
+    P->>M: Extract fields (JSON only)
+    M-->>P: fields, clarity
+    P->>P: merge, decide, score 60/40
+    P-->>API: NEEDS_INFO + 1 question
+    API->>DB: save submission + request (AWAITING_INFO)
+    API-->>UI: ticket FW-2026-00001 + question
+    R->>UI: Answer
+    UI->>API: POST /answers
+    API->>P: applyAnswers (no model call)
+    P-->>API: COMPLETE + standardised text
+    API->>DB: update, status PENDING_REVIEW
+    API-->>UI: Done
+```
+
+More diagrams (use cases, request status, data model, scoring) are in [docs/DESIGN.md](docs/DESIGN.md); the editable draw.io source is [docs/diagrams/justify-ai.drawio](docs/diagrams/justify-ai.drawio).
+
 ## Features
 
 - Firewall Access Request portal: enterprise form (type, priority, application, IPs, port, protocol, environment,
